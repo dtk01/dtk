@@ -1,0 +1,24 @@
+dtk.el
+================================
+
+
+Use
+--------------------------------
+
+M-x dtk
+     - read a portion of the KJV
+
+M-x dtk-search
+     - search through the KJV via diatheke
+
+Prerequisites
+--------------------------------
+
+dtk.el ssumes diatheke is installed with the KJV
+
+
+See also
+--------------------------------
+
+http://www.jasonfruit.com/page/diatheke_el
+
