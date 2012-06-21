@@ -1,6 +1,8 @@
 dtk.el
 ================================
 
+Read the Bible or other diatheke-accessible material in emacs. diatheke is a front-end to the SWORD library.
+
 
 Use
 --------------------------------
@@ -11,14 +13,16 @@ M-x dtk
 M-x dtk-search
      - search through the KJV via diatheke
 
+
 Prerequisites
 --------------------------------
 
-dtk.el ssumes diatheke is installed with the KJV
+dtk.el assumes diatheke is installed with the KJV
 
 
 See also
 --------------------------------
 
+http://www.crosswire.org/wiki/Frontends:Diatheke
 http://www.jasonfruit.com/page/diatheke_el
 
