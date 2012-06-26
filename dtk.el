@@ -329,8 +329,8 @@
 (defface dtk-compact-verse-number 
   '((t ()))
   "Face for marking verse number.")
-(set-face-background 'dtk-verse-number nil)
-(set-face-attribute 'dtk-verse-number nil 
+(set-face-background 'dtk-compact-verse-number nil)
+(set-face-attribute 'dtk-compact-verse-number nil 
 		    :height 0.8)
 
 ;;
