@@ -16,12 +16,18 @@
 ;;
 ;; interact with diatheke 
 ;;
-(defun dtk (&optional bk ch vs)
-  "Insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses via BK CH and VS. If BK is NIL, query user to determine value to use for BK, CH, and VS."
+(defun dtk ()
+  "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses via BK CH and VS. If BK is NIL, query user to determine value to use for BK, CH, and VS."
+  (interactive)
+  (if (dtk-buffer-exists-p)
+      (dtk-switch-to-dtk-buffer) 
+    (dtk-go-to)))
+
+(defun dtk-go-to (&optional bk ch vs)
   (interactive)
   (if (dtk-bible-module-p *dtk-module*)
-      (dtk-bible)
-    (dtk-other)))
+	(dtk-bible)
+      (dtk-other)))
 
 (defun dtk-bible ()
   (let* ((book
@@ -52,33 +58,37 @@
 	  (dtk-compact-region start-point (point))))))
 
 (defun dtk-other ()
-  (let* (;; (book
-	 ;;  (or bk
-	 ;;      (minibuffer-with-setup-hook 'minibuffer-complete
-	 ;; 	(let ((completion-ignore-case t))
-	 ;; 	  (completing-read (concat "Book: ")
-	 ;; 			   *dtk-books*)))))
-	 ;; (ch (if bk
-	 ;; 	 ch
-	 ;;       (read-from-minibuffer "Ch: ")))
-	 ;; (vs (if bk
-	 ;; 	 vs
-	 ;;       (read-from-minibuffer "Vs: ")))
-	 ;; (ch-vs (if ch
-	 ;; 	    (if vs
-	 ;; 		(concat ch ":" vs)
-	 ;; 	      ch)
-	 ;; 	  ""))
+  ;; FIXME: this will fail except for Bible and commentary
+  (dtk-commentary))
+
+(defun dtk-commentary ()
+  ;; if it's a commentary, we can get away with the same approach...
+  (let* ((book
+	  (or bk
+	      (minibuffer-with-setup-hook 'minibuffer-complete
+	 	(let ((completion-ignore-case t))
+	 	  (completing-read (concat "Book: ")
+	 			   *dtk-books*)))))
+	 (ch (if bk
+	 	 ch
+	       (read-from-minibuffer "Ch: ")))
+	 (vs (if bk
+	 	 vs
+	       (read-from-minibuffer "Vs: ")))
+	 (ch-vs (if ch
+	 	    (if vs
+	 		(concat ch ":" vs)
+	 	      ch)
+	 	  ""))
 	 (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
     (dtk-switch-to-dtk-buffer)
     (dtk-mode)
     (let ((start-point (point)))
       (call-process "diatheke" nil
-		    dtk-buffer		; (current-buffer)
+		    dtk-buffer
 		    t "-b" *dtk-module* 
-		    "-m" "100"		; sanity cap
-		    ;"-k" book ch-vs
-		    )
+		    ;"-m" "100"		; sanity cap
+		    "-k" book ch-vs)
       ;; (if *dtk-compact-view-p*
       ;; 	  (let ((end-point (point)))
       ;; 	    (goto-char start-point)
@@ -154,6 +164,34 @@
 	 (dtk-string-trim-whitespace (subseq module-string 0 (position 58 module-string))))
      biblical-text-modules)))
 
+(defun dtk-select-module ()
+  (interactive)
+  (let ((module 
+	 (minibuffer-with-setup-hook 'minibuffer-complete
+	   (let ((completion-ignore-case t))
+	     (completing-read (concat "Module: ")
+			      ;; FIXME: polish up dtk-modulelist and select between 'Generic books', 'Commentaries', 'Biblical Texts', etc. first
+			      (dtk-module-names))))))
+    (if module (setf *dtk-module* module))))
+
+;;;
+;;; dtk buffer
+;;; 
+(defun dtk-buffer-exists-p ()
+  (get-buffer *dtk-buffer-name*))
+
+(defun dtk-clear-dtk-buffer ()
+  (interactive)
+  (with-current-buffer *dtk-buffer-name*
+    (delete-region (progn (beginning-of-buffer) (point))
+		   (progn (end-of-buffer) (point)))))
+
+;; assume a single buffer named '*dtk*'
+(defun dtk-ensure-dtk-buffer-exists ()
+  (get-buffer-create *dtk-buffer-name*))
+
+(defun dtk-switch-to-dtk-buffer ()
+  (switch-to-buffer "*dtk*"))
 
 ;;;
 ;;; interact with dtk buffers
@@ -165,12 +203,6 @@
 (defun dtk-back-to-verse-full-citation-verse-number ()
   (interactive)
   (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp))
-
-(defun dtk-clear-dtk-buffer ()
-  (interactive)
-  (with-current-buffer *dtk-buffer-name*
-    (delete-region (progn (beginning-of-buffer) (point))
-		   (progn (end-of-buffer) (point)))))
 
 (defun dtk-compact-region (&optional start-point end-point)
   "Helper for DTK-BIBLE."
@@ -191,8 +223,7 @@
 		  (error nil)))
       (cond ((dtk-preceding-citation-is-chapter-start-p)
 	     ;; clean up ugly trailing colon
-	     (delete-char -1)
-	     )
+	     (delete-char -1))
 	    (t 
 	     ;; sometimes diatheke inserts a newline after the verse number
 	     (dtk-snug-text-to-citation)
@@ -220,10 +251,6 @@
   ;; delete colon succeeding verse number
   (search-forward ":")
   (delete-region (1- (point)) (point)))
-
-;; assume a single buffer named '*dtk*'
-(defun dtk-ensure-dtk-buffer-exists ()
-  (get-buffer-create "*dtk*"))
 
 (defun dtk-forward-to-verse-number-end ()
   "Look for the next occurence of a verse number in a verse citation."
@@ -274,9 +301,6 @@
 	    (insert-char ?\u0020  	; space (ascii 32)
 			 1)))))
 
-(defun dtk-switch-to-dtk-buffer ()
-  (switch-to-buffer "*dtk*"))
-
 ;;
 ;; dtk major mode
 ;;
@@ -308,8 +332,7 @@
 	     font-lock-constant-face	; Foreground: Aquamarine
 	     )
        ;; translation/source
-       ;; - FIXME: should use *dtk-module* instead of KJV
-       (list "^\(KJV\)")))
+       (list *dtk-module*)))
 
 (defface dtk-full-book 
   '((t ()))
@@ -344,11 +367,12 @@
 (defvar dtk-mode-map nil
   "Major mode keymap for `dtk-mode'.")
 (setq dtk-mode-map 
-      (let ((map (make-sparse-keymap)))
+      (let ((map (make-sparse-keymap))) 
 	(define-key map "c" 'dtk-clear-dtk-buffer)
 	(define-key map "b" 'dtk-backward-verse)
-	(define-key map "d" 'dtk)
+	(define-key map "g" 'dtk-go-to)
 	(define-key map "f" 'dtk-forward-verse)
+	(define-key map "m" 'dtk-select-module)
 	(define-key map "s" 'dtk-search)
 	(define-key map "q" 'dtk-quit)
 	map))
