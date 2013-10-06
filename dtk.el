@@ -3,7 +3,7 @@
 ;;;
 (defvar *dtk-books*
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
-    "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galations" "Ephesians" "Phillipians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude" "Revelations"))
+    "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galations" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude" "Revelations"))
 
 (defvar *dtk-books-regexp* nil)
 (setq *dtk-books-regexp*
@@ -43,11 +43,9 @@
 (defun dtk-go-to (&optional bk ch vs)
 "Facilitate the selection of one or more verses via BK CH and VS. If BK is NIL, query user to determine value to use for BK, CH, and VS."
   (interactive)
-  (if (dtk-bible-module-p *dtk-module*)
-      (progn
-	(message "dtk-go-to") 
-	(dtk-bible bk ch vs))
-      (dtk-other)))
+  (if (dtk-bible-module-p *dtk-module*)      
+      (dtk-bible bk ch vs)
+    (dtk-other)))
 
 (defun dtk-bible (&optional bk ch vs)
   "BK is a string. CH is an integer. VS is an integer."
@@ -70,10 +68,12 @@
 	    (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
        (dtk-switch-to-dtk-buffer)
        (dtk-mode)
-       (let ((start-point (point)))
+       (let ((start-point (point))) 
 	 (call-process "diatheke" nil
-		       dtk-buffer	; (current-buffer)
-		       t "-b" *dtk-module* "-k" book ch-vs)
+		       dtk-buffer	; insert content in dtk-buffer
+		       t		; redisplay buffer as output is inserted
+		       ;; arguments: -b KJV k John
+		       "-b" *dtk-module* "-k" book ch-vs) 
 	 (if *dtk-compact-view-p*
 	     (dtk-compact-region start-point (point))))))))
 
@@ -232,30 +232,31 @@
     (goto-char start-point)
     ;; if succeeding line is blank, delete it
     (delete-blank-lines)
-    (dtk-forward-to-verse-number-end)
-    ;; clean up ugly trailing colon
-    (delete-char -1)
+    ;; if we can't find verse number, no point in proceeding
+    (when (dtk-forward-to-verse-number-end)
+      ;; clean up ugly trailing colon
+      (delete-char -1)
 
-    ;; the above leaves the cursor on the space succeeding the colon
-    (while (and (< (point) end-point)
-		(condition-case nil
-		    (dtk-forward-to-verse-number-end)
-		  (error nil)))
-      (cond ((dtk-preceding-citation-is-chapter-start-p)
-	     ;; clean up ugly trailing colon
-	     (delete-char -1))
-	    (t 
-	     ;; sometimes diatheke inserts a newline after the verse number
-	     (dtk-snug-text-to-citation)
-	     (dtk-compact-preceding-citation)
-	     ;; if succeeding line is blank, delete it
-	     (delete-blank-lines)
-	     ;; what to do here? could...
-	     ;; 1. indent line
-	     ;; ;;(insert-char 32 2)
-	     ;; 2. compact further by merging w/preceding line
-	     (join-line)		; ? (delete-indentation)
-	     )))))
+      ;; the above leaves the cursor on the space succeeding the colon
+      (while (and (< (point) end-point)
+		  (condition-case nil
+		      (dtk-forward-to-verse-number-end)
+		    (error nil)))
+	(cond ((dtk-preceding-citation-is-chapter-start-p)
+	       ;; clean up ugly trailing colon
+	       (delete-char -1))
+	      (t 
+	       ;; sometimes diatheke inserts a newline after the verse number
+	       (dtk-snug-text-to-citation)
+	       (dtk-compact-preceding-citation)
+	       ;; if succeeding line is blank, delete it
+	       (delete-blank-lines)
+	       ;; what to do here? could...
+	       ;; 1. indent line
+	       ;; ;;(insert-char 32 2)
+	       ;; 2. compact further by merging w/preceding line
+	       (join-line)		; ? (delete-indentation)
+	       ))))))
 
 (defun dtk-compact-preceding-citation ()
   (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
@@ -273,10 +274,12 @@
   (delete-region (1- (point)) (point)))
 
 (defun dtk-forward-to-verse-number-end ()
-  "Look for the next occurence of a verse number in a verse citation."
+  "Look for the next occurence of a verse number in a verse citation. Return point or, if unable to find verse number, return NIL."
   ;; search for :N: or :NN:
   ;; FIXME: what about chapters with > 99 verses?
-  (search-forward-regexp dtk-verse-raw-citation-verse-number-regexp))
+  (search-forward-regexp dtk-verse-raw-citation-verse-number-regexp
+			 nil
+			 t))
 
 (defun dtk-parse-citation-at-point () 
   "Assume point is at the start of a full verse citation."
