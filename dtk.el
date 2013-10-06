@@ -1,9 +1,10 @@
 ;;;
 ;;; dtk.el: access SWORD via diatheke
 ;;;
-(defvar *dtk-books*
-  '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
-    "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galations" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude" "Revelations"))
+(defvar *dtk-books* nil)
+(setq *dtk-books* 
+      '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
+	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galations" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude" "Revelations"))
 
 (defvar *dtk-books-regexp* nil)
 (setq *dtk-books-regexp*
@@ -60,11 +61,11 @@
 	   (vs (if bk
 		   (number-to-string vs)
 		 (read-from-minibuffer "Vs: "))))
-      (let ((ch-vs (if ch
-		      (if vs
-			  (concat ch ":" vs)
-			ch)
-		    ""))
+      (let ((ch-vs (if (not (dtk-empty-sequence-p ch))
+		       (if vs
+			   (concat ch ":" vs)
+			 ch)
+		     ""))
 	    (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
        (dtk-switch-to-dtk-buffer)
        (dtk-mode)
@@ -597,6 +598,10 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 	  (<= char-code 90))
      (and (>= char-code 97) 
 	  (<= char-code 122)))))
+
+(defun dtk-empty-sequence-p (x)
+  (or (not x)
+      (= 0 (length x))))
 
 (defun dtk-number-at-point (&optional point)
   "More flexible version of NUMBER-AT-POINT."
