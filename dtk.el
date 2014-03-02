@@ -72,7 +72,7 @@
 	    (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
        (dtk-switch-to-dtk-buffer)
        (dtk-mode)
-       (setq word-wrap t) 
+       (setq word-wrap *dtk-word-wrap*) 
        (let ((start-point (point))) 
 	 (call-process "diatheke" nil
 		       dtk-buffer	; insert content in dtk-buffer
