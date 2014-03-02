@@ -20,6 +20,9 @@
 (defvar *dtk-compact-view-p* t
   "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
 
+(defvar *dtk-word-wrap* t
+  "The value of this variable should satisfy the predicate booleanp. If its value is true, wrap continuation lines at word boundaries (space or tab character) nearest to right window edge.")
+
 (defvar *dtk-module* "KJV"
   "Module currently in use.")
 
@@ -69,6 +72,7 @@
 	    (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
        (dtk-switch-to-dtk-buffer)
        (dtk-mode)
+       (setq word-wrap t) 
        (let ((start-point (point))) 
 	 (call-process "diatheke" nil
 		       dtk-buffer	; insert content in dtk-buffer
