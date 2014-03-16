@@ -8,10 +8,13 @@ Use
 --------------------------------
 
 M-x dtk
-     - read a portion of the KJV
+     - read a portion of a text
 
 M-x dtk-search
-     - search through the KJV via diatheke
+     - search the selected text
+
+M-x dtk-select-module
+     - select a module (e.g., KJV, ESV, or RNKJV)
 
 
 Prerequisites
