@@ -33,8 +33,10 @@
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
   (interactive)
   (if (dtk-buffer-exists-p)
-      (dtk-switch-to-dtk-buffer) 
-    (dtk-go-to)))
+      (dtk-switch-to-dtk-buffer)
+    (if (dtk-biblical-texts)
+	(dtk-go-to)
+      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts (e.g., in Debian, you can install a package such as sword-text-kjv)."))))
 
 (defun dtk-follow ()
   "Look for full citation under point. If point is indeed at a full citation, insert corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
@@ -155,7 +157,10 @@
 
 ;; MODULE: a string, e.g., "KJV"
 (defun dtk-bible-module-p (module)
-  (member module (dtk-modules-in-category "Biblical Texts")))
+  (member module (dtk-biblical-texts)))
+
+(defun dtk-biblical-texts ()
+  (dtk-modules-in-category "Biblical Texts"))
 
 ;; CATEGORY: e.g., "Biblical Texts"
 (defun dtk-module-category (category)
