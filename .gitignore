@@ -1,8 +1,14 @@
+/
 /#CURR-dtk-el#
 /.#CURR-dtk-el
+/.gitignore
 /.gitignore~
 /CURR-dtk-el
 /CURR-dtk-el~
 /README~
+/dev
+/dtk-scratch.el
+/dtk-scratch.el~
 /dtk.el~
 /github
+/load-dtk.el

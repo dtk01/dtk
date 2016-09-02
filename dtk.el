@@ -4,7 +4,11 @@
 (defvar *dtk-books* nil)
 (setq *dtk-books* 
       '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
-	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galations" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude" "Revelations"))
+	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians"
+	"Galatians" ; "Galations"
+	"Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
+	"Revelation of John" ;"Revelations"
+	))
 
 (defvar *dtk-books-regexp* nil)
 (setq *dtk-books-regexp*
@@ -47,7 +51,7 @@
     (dtk-go-to bk ch vs)))
 
 (defun dtk-go-to (&optional bk ch vs)
-"Facilitate the selection of one or more verses via BK CH and VS. If BK is NIL, query user to determine value to use for BK, CH, and VS."
+"Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS."
   (interactive)
   (if (dtk-bible-module-p *dtk-module*)      
       (dtk-bible bk ch vs)
@@ -75,12 +79,14 @@
        (dtk-switch-to-dtk-buffer)
        (dtk-mode)
        (setq word-wrap *dtk-word-wrap*) 
-       (let ((start-point (point))) 
-	 (call-process "diatheke" nil
-		       dtk-buffer	; insert content in dtk-buffer
-		       t		; redisplay buffer as output is inserted
-		       ;; arguments: -b KJV k John
-		       "-b" *dtk-module* "-k" book ch-vs) 
+       (let ((start-point (point)))
+	 (if (executable-find "diatheke")
+	     (call-process "diatheke" nil
+			   dtk-buffer	; insert content in dtk-buffer
+			   t		; redisplay buffer as output is inserted
+			   ;; arguments: -b KJV k John
+			   "-b" *dtk-module* "-k" book ch-vs)
+	   (message (concat "diatheke not found found; please verify diatheke is installed")))
 	 (if *dtk-compact-view-p*
 	     (dtk-compact-region start-point (point))))))))
 
