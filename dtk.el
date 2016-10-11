@@ -27,7 +27,7 @@
 (defvar *dtk-word-wrap* t
   "The value of this variable should satisfy the predicate booleanp. If its value is true, wrap continuation lines at word boundaries (space or tab character) nearest to right window edge.")
 
-(defvar *dtk-module* "KJV"
+(defvar *dtk-module* nil
   "Module currently in use.")
 
 ;;
@@ -39,6 +39,7 @@
   (if (dtk-buffer-exists-p)
       (dtk-switch-to-dtk-buffer)
     (if (dtk-biblical-texts)
+	
 	(dtk-go-to)
       (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts (e.g., in Debian, you can install a package such as sword-text-kjv)."))))
 
@@ -52,10 +53,15 @@
 
 (defun dtk-go-to (&optional bk ch vs)
 "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS."
-  (interactive)
-  (if (dtk-bible-module-p *dtk-module*)      
-      (dtk-bible bk ch vs)
-    (dtk-other)))
+(interactive)
+(if (dtk-module-available-p *dtk-module*)
+    (if (dtk-bible-module-available-p *dtk-module*)      
+	(dtk-bible bk ch vs)
+      (dtk-other))
+  (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
+	   *dtk-module*
+	   (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
+	   (dtk-module-names))))
 
 (defun dtk-bible (&optional bk ch vs)
   "BK is a string. CH is an integer. VS is an integer."
@@ -162,11 +168,15 @@
 ;;;
 
 ;; MODULE: a string, e.g., "KJV"
-(defun dtk-bible-module-p (module)
+(defun dtk-bible-module-available-p (module)
   (member module (dtk-biblical-texts)))
 
 (defun dtk-biblical-texts ()
   (dtk-modules-in-category "Biblical Texts"))
+
+(defun dtk-module-available-p (module-name)
+  "Test whether module is locally available."
+  (member module-name (dtk-module-names)))
 
 ;; CATEGORY: e.g., "Biblical Texts"
 (defun dtk-module-category (category)
@@ -634,3 +644,9 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (if (string-match "[ \t\n]+\\'" string)
       (setq string (substring string 0 (match-beginning 0))))
   string)
+
+;;;
+;;; establish defaults (relying on dtk code)
+;;;
+(setf *dtk-module* (or (first (dtk-modules-in-category "Biblical Texts")
+			      (first (dtk-module-names)))))
