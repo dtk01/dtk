@@ -33,15 +33,16 @@
 ;;
 ;; interact with diatheke 
 ;;
+
+;;;###autoload
 (defun dtk ()
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
   (interactive)
   (if (dtk-buffer-exists-p)
       (dtk-switch-to-dtk-buffer)
-    (if (dtk-biblical-texts)
-	
+    (if (dtk-biblical-texts) 
 	(dtk-go-to)
-      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts (e.g., in Debian, you can install a package such as sword-text-kjv)."))))
+      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
 
 (defun dtk-follow ()
   "Look for full citation under point. If point is indeed at a full citation, insert corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
@@ -52,16 +53,16 @@
     (dtk-go-to bk ch vs)))
 
 (defun dtk-go-to (&optional bk ch vs)
-"Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS."
-(interactive)
-(if (dtk-module-available-p *dtk-module*)
-    (if (dtk-bible-module-available-p *dtk-module*)      
-	(dtk-bible bk ch vs)
-      (dtk-other))
-  (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
-	   *dtk-module*
-	   (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
-	   (dtk-module-names))))
+  "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS."
+  (interactive)
+  (if (dtk-module-available-p *dtk-module*)
+      (if (dtk-bible-module-available-p *dtk-module*)      
+	  (dtk-bible bk ch vs)
+	(dtk-other))
+    (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
+	     *dtk-module*
+	     (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
+	     (dtk-module-names))))
 
 (defun dtk-bible (&optional bk ch vs)
   "BK is a string. CH is an integer. VS is an integer."
@@ -152,6 +153,7 @@
       ;; 		))))
       )))
 
+;;;###autoload
 (defun dtk-search (&optional word-or-phrase)
   (interactive)
   (let ((word-or-phrase (or word-or-phrase (read-from-minibuffer "Search: ")))
@@ -210,6 +212,7 @@
 	 (dtk-string-trim-whitespace (substring module-string 0 (position 58 module-string))))
      biblical-text-modules)))
 
+;;;###autoload
 (defun dtk-select-module ()
   (interactive)
   (let ((module 
@@ -443,25 +446,14 @@
 
 ;;
 ;; misc dtk mode stuff
-(defvar dtk-mode-abbrev-table nil
-  "Abbrev table used while in dtk mode.")
+;; (defvar dtk-mode-abbrev-table nil
+;;   "Abbrev table used while in dtk mode.")
 
 ;; place where users can add stuff
-(defvar dtk-mode-hook nil)
+;(defvar dtk-mode-hook nil)
 
-(defvar dtk-mode-map nil
-  "Major mode keymap for `dtk-mode'.")
-(setq dtk-mode-map 
-      (let ((map (make-sparse-keymap))) 
-	(define-key map "c" 'dtk-clear-dtk-buffer)
-	(define-key map "b" 'dtk-backward-verse)
-	(define-key map "g" 'dtk-go-to)
-	(define-key map "f" 'dtk-forward-verse)
-	(define-key map "m" 'dtk-select-module)
-	(define-key map "s" 'dtk-search)
-	(define-key map "q" 'dtk-quit)
-	(define-key map "x" 'dtk-follow)
-	map))
+;; (defvar dtk-mode-map nil
+;;   "Major mode keymap for `dtk-mode'.")
 
 (defun dtk-make-overlay-verse-number (beg end) 
   (let ((ov (make-overlay beg end
@@ -472,24 +464,34 @@
     (overlay-put ov 'dtk-overlay t)
     ov))
 
-(defun dtk-mode ()
+;;;###autoload
+(define-derived-mode dtk-mode text-mode "dtk"
   "Major mode for displaying dtk text
 \\{dtk-mode-map}
 Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
-  (interactive)
   (kill-all-local-variables)
-  (use-local-map dtk-mode-map)
-  (setq mode-name "dtk")
-  (setq major-mode 'dtk-mode)
-  (set-syntax-table text-mode-syntax-table)
-  (setq local-abbrev-table dtk-mode-abbrev-table)
+  ;(use-local-map dtk-mode-map)
+  ;(setq mode-name "dtk")
+  ;(setq major-mode 'dtk-mode)
+  ;(set-syntax-table text-mode-syntax-table)
+  ;(setq local-abbrev-table dtk-mode-abbrev-table)
   ;; indent with #\Tab
   ;;(setq indent-line-function 'dtk-indent-line)
   ;; syntax highlighting/font lock
   (setq font-lock-defaults '(dtk-font-lock-keywords))
   (make-local-variable 'paragraph-start)
   (make-local-variable 'paragraph-separate)
-  (run-hooks 'text-mode-hook 'dtk-mode-hook))
+  ;(run-hooks 'text-mode-hook 'dtk-mode-hook)
+  )
+
+(define-key dtk-mode-map "c" 'dtk-clear-dtk-buffer)
+(define-key dtk-mode-map "b" 'dtk-backward-verse)
+(define-key dtk-mode-map "g" 'dtk-go-to)
+(define-key dtk-mode-map "f" 'dtk-forward-verse)
+(define-key dtk-mode-map "m" 'dtk-select-module)
+(define-key dtk-mode-map "s" 'dtk-search)
+(define-key dtk-mode-map "q" 'dtk-quit)
+(define-key dtk-mode-map "x" 'dtk-follow)
 
 (defun dtk-to-verse-number-font (beg end)
   (with-current-buffer *dtk-buffer-name*
@@ -648,5 +650,8 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;;
 ;;; establish defaults (relying on dtk code)
 ;;;
-(setf *dtk-module* (or (first (dtk-modules-in-category "Biblical Texts")
-			      (first (dtk-module-names)))))
+(setf *dtk-module* (or (first (dtk-modules-in-category "Biblical Texts"))
+		       (first (dtk-module-names))))
+
+(provide 'dtk)
+;;; dtk.el ends here
