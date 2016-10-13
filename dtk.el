@@ -469,7 +469,7 @@
   "Major mode for displaying dtk text
 \\{dtk-mode-map}
 Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
-  (kill-all-local-variables)
+  ;(kill-all-local-variables)
   ;(use-local-map dtk-mode-map)
   ;(setq mode-name "dtk")
   ;(setq major-mode 'dtk-mode)
