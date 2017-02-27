@@ -87,15 +87,29 @@
        (dtk-mode)
        (setq word-wrap *dtk-word-wrap*) 
        (let ((start-point (point)))
-	 (if (executable-find "diatheke")
-	     (call-process "diatheke" nil
-			   dtk-buffer	; insert content in dtk-buffer
-			   t		; redisplay buffer as output is inserted
-			   ;; arguments: -b KJV k John
-			   "-b" *dtk-module* "-k" book ch-vs)
-	   (message (concat "diatheke not found found; please verify diatheke is installed")))
+	 (dtk-bible--insert-using-diatheke)
 	 (if *dtk-compact-view-p*
 	     (dtk-compact-region start-point (point))))))))
+
+(defun dtk-bible--insert-using-diatheke ()
+  "Insert specified content into current buffer."
+  (if (executable-find "diatheke")
+      (progn
+	(call-process "diatheke" nil
+		      dtk-buffer	; insert content in dtk-buffer
+		      t		; redisplay buffer as output is inserted
+		      ;; arguments: -b KJV k John
+		      "-b" *dtk-module* "-k" book ch-vs)
+	;; diatheke outputs verses and then outputs
+	;; - a single line with the last verse w/o reference followed by
+	;; - a single line with the module followed by
+	;; - a newline
+	(end-of-buffer)
+	(join-line)
+	(kill-whole-line)
+	(join-line)
+	(kill-whole-line))
+    (message (concat "diatheke not found found; please verify diatheke is installed"))))
 
 (defun dtk-other ()
   ;; FIXME: this will fail except for Bible and commentary
