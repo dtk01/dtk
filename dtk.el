@@ -66,49 +66,55 @@
 
 (defun dtk-bible (&optional bk ch vs)
   "BK is a string. CH is an integer. VS is an integer."
-  (let ((book (or bk
-		  (minibuffer-with-setup-hook 'minibuffer-complete
-		    (let ((completion-ignore-case t))
-		      (completing-read (concat "Book: ")
-				       *dtk-books*))))))
-    (let* ((ch (if bk
-		   (number-to-string ch)
-		 (read-from-minibuffer "Ch: ")))
-	   (vs (if bk
-		   (number-to-string vs)
-		 (read-from-minibuffer "Vs: "))))
-      (let ((ch-vs (if (not (dtk-empty-sequence-p ch))
-		       (if vs
-			   (concat ch ":" vs)
-			 ch)
-		     ""))
-	    (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-       (dtk-switch-to-dtk-buffer)
-       (dtk-mode)
-       (setq word-wrap *dtk-word-wrap*) 
-       (let ((start-point (point)))
-	 (dtk-bible--insert-using-diatheke)
-	 (if *dtk-compact-view-p*
-	     (dtk-compact-region start-point (point))))))))
+  (if (not (dtk-biblical-texts))
+      (warn "One or more Biblical texts must be installed first")
+    (let ((book (or bk
+		    (minibuffer-with-setup-hook 'minibuffer-complete
+		      (let ((completion-ignore-case t))
+			(completing-read (concat "Book: ")
+					 *dtk-books*))))))
+      (let* ((ch (if bk
+		     (number-to-string ch)
+		   (read-from-minibuffer "Ch: ")))
+	     (vs (if bk
+		     (number-to-string vs)
+		   (read-from-minibuffer "Vs: "))))
+	(let ((ch-vs (if (not (dtk-empty-sequence-p ch))
+			 (if vs
+			     (concat ch ":" vs)
+			   ch)
+		       ""))
+	      (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
+	  (dtk-switch-to-dtk-buffer)
+	  (dtk-mode)
+	  (setq word-wrap *dtk-word-wrap*) 
+	  (let ((start-point (point)))
+	    (dtk-bible--insert-using-diatheke)
+	    (if *dtk-compact-view-p*
+		(dtk-compact-region start-point (point)))))))))
 
 (defun dtk-bible--insert-using-diatheke ()
   "Insert specified content into current buffer."
   (if (executable-find "diatheke")
       (progn
-	(call-process "diatheke" nil
-		      dtk-buffer	; insert content in dtk-buffer
-		      t		; redisplay buffer as output is inserted
-		      ;; arguments: -b KJV k John
-		      "-b" *dtk-module* "-k" book ch-vs)
-	;; diatheke outputs verses and then outputs
-	;; - a single line with the last verse w/o reference followed by
-	;; - a single line with the module followed by
-	;; - a newline
-	(end-of-buffer)
-	(join-line)
-	(kill-whole-line)
-	(join-line)
-	(kill-whole-line))
+	;; sanity check
+	(if (not *dtk-module*)
+	    (warn "Define *dtk-module* ('m') first")
+	  (progn
+	    (call-process "diatheke" nil
+			  dtk-buffer	; insert content in dtk-buffer
+			  t     ; redisplay buffer as output is inserted
+			  ;; arguments: -b KJV k John
+			  "-b" *dtk-module* "-k" book ch-vs)
+	    ;; diatheke outputs verses and then outputs
+	    ;; - a single line with the last verse w/o reference followed by
+	    ;; - a single line with the module followed by
+	    ;; - a newline
+	    (end-of-buffer)
+	    (join-line)
+	    (kill-whole-line)
+	    (join-line)
+	    (kill-whole-line))))
     (message (concat "diatheke not found found; please verify diatheke is installed"))))
 
 (defun dtk-other ()
