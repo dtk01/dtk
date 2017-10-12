@@ -1,6 +1,20 @@
-;;;
-;;; dtk.el: access SWORD via diatheke
-;;;
+;;; dtk.el: access SWORD content via diatheke
+
+;; Copyright (C) 2017 David Thompson
+;; Author: David Thompson
+;; Version: 0.1
+;; Keywords: Bible, diatheke, SWORD
+;; URL: https://github.com/dtk01/dtk.el
+
+;;; Commentary:
+
+;; This package provides access to SWORD content via diatheke, facilitating
+;; reading a Biblical text, or other diatheke-accessible material, in Emacs. 
+
+;; To browse to a particular text, use `dtk`.
+
+;;; Code:
+
 (defvar *dtk-books* nil)
 (setq *dtk-books* 
       '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
