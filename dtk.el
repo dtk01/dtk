@@ -3,7 +3,8 @@
 ;; Copyright (C) 2017 David Thompson
 
 ;; Author: David Thompson
-;; Keywords: 
+;; Keywords: hypermedia
+;; Version: 0.2
 ;; URL: https://github.com/dtk01/dtk.el
 
 ;;; Commentary:
