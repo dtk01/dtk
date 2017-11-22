@@ -195,6 +195,7 @@
 
 ;;;###autoload
 (defun dtk-search (&optional word-or-phrase)
+  "Search for the text string WORD-OR-PHRASE. If WORD-OR-PHRASE is NIL, prompt the user for the search string."
   (interactive)
   (let ((word-or-phrase (or word-or-phrase (read-from-minibuffer "Search: ")))
 	 (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
@@ -217,7 +218,7 @@
   (dtk-modules-in-category "Biblical Texts"))
 
 (defun dtk-module-available-p (module-name)
-  "Test whether module is locally available."
+  "Test whether the module specified by MODULE-NAME is locally available."
   (member module-name (dtk-module-names)))
 
 ;; CATEGORY: e.g., "Biblical Texts"
@@ -254,6 +255,7 @@
 
 ;;;###autoload
 (defun dtk-select-module ()
+  "Prompt the user to select a module."
   (interactive)
   (let ((module 
 	 (minibuffer-with-setup-hook 'minibuffer-complete
@@ -270,6 +272,7 @@
   (get-buffer dtk-buffer-name))
 
 (defun dtk-clear-dtk-buffer ()
+  "Clear the dtk buffer."
   (interactive)
   (with-current-buffer dtk-buffer-name
     (delete-region (progn (beginning-of-buffer) (point))
@@ -290,6 +293,7 @@
 
 ;; put point directly before number
 (defun dtk-back-to-verse-full-citation-verse-number ()
+  "Navigate back to the start of the verse."
   (interactive)
   (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp))
 
@@ -392,6 +396,7 @@
       (= verse-number 1))))
 
 (defun dtk-quit ()
+  "Quit."
   (interactive)
   (kill-buffer dtk-buffer-name))
 
