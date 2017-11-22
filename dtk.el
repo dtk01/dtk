@@ -1,9 +1,9 @@
-;;; dtk.el: access SWORD content via diatheke
+;;; dtk.el --- access SWORD content via diatheke
 
 ;; Copyright (C) 2017 David Thompson
+
 ;; Author: David Thompson
-;; Version: 0.1
-;; Keywords: Bible, diatheke, SWORD
+;; Keywords: 
 ;; URL: https://github.com/dtk01/dtk.el
 
 ;;; Commentary:
