@@ -55,7 +55,10 @@
   (if (dtk-buffer-exists-p)
       (dtk-switch-to-dtk-buffer)
     (if (dtk-biblical-texts) 
-	(dtk-go-to)
+	(if (not (dtk-go-to))
+	    (let ((dtk-buffer (dtk-ensure-dtk-buffer-exists)))
+	      (dtk-switch-to-dtk-buffer)
+	      (dtk-mode)))
       (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
 
 (defun dtk-follow ()
@@ -67,16 +70,18 @@
     (dtk-go-to bk ch vs)))
 
 (defun dtk-go-to (&optional bk ch vs)
-  "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS."
+  "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS. Return NIL if specified module is not available."
   (interactive)
   (if (dtk-module-available-p *dtk-module*)
       (if (dtk-bible-module-available-p *dtk-module*)      
 	  (dtk-bible bk ch vs)
 	(dtk-other))
-    (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
-	     *dtk-module*
-	     (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
-	     (dtk-module-names))))
+    (progn
+      (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
+	       *dtk-module*
+	       (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
+	       (dtk-module-names))
+      nil)))
 
 (defun dtk-bible (&optional bk ch vs)
   "BK is a string. CH is an integer. VS is an integer."
