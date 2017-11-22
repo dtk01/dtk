@@ -15,8 +15,8 @@
 
 ;;; Code:
 
-(defvar *dtk-books* nil)
-(setq *dtk-books* 
+(defvar dtk-books nil)
+(setq dtk-books 
       '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
 	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians"
 	"Galatians" ; "Galations"
@@ -24,24 +24,24 @@
 	"Revelation of John" ;"Revelations"
 	))
 
-(defvar *dtk-books-regexp* nil)
-(setq *dtk-books-regexp*
+(defvar dtk-books-regexp nil)
+(setq dtk-books-regexp
   (let ((raw-regexp "")) 
     (mapc #'(lambda (book)
 	      (setq raw-regexp
 		    (concat raw-regexp "\\(" book "\\)\\|")))
-	 *dtk-books*) 
+	 dtk-books) 
     (substring raw-regexp 0 (- (length raw-regexp) 2))))
 
-(defvar *dtk-buffer-name* "*dtk*")
+(defvar dtk-buffer-name "*dtk*")
 
-(defvar *dtk-compact-view-p* t
+(defvar dtk-compact-view-p t
   "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
 
-(defvar *dtk-word-wrap* t
+(defvar dtk-word-wrap t
   "The value of this variable should satisfy the predicate booleanp. If its value is true, wrap continuation lines at word boundaries (space or tab character) nearest to right window edge.")
 
-(defvar *dtk-module* nil
+(defvar dtk-module nil
   "Module currently in use.")
 
 ;;
@@ -72,13 +72,13 @@
 (defun dtk-go-to (&optional bk ch vs)
   "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS. Return NIL if specified module is not available."
   (interactive)
-  (if (dtk-module-available-p *dtk-module*)
-      (if (dtk-bible-module-available-p *dtk-module*)      
+  (if (dtk-module-available-p dtk-module)
+      (if (dtk-bible-module-available-p dtk-module)      
 	  (dtk-bible bk ch vs)
 	(dtk-other))
     (progn
       (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
-	       *dtk-module*
+	       dtk-module
 	       (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
 	       (dtk-module-names))
       nil)))
@@ -91,7 +91,7 @@
 		    (minibuffer-with-setup-hook 'minibuffer-complete
 		      (let ((completion-ignore-case t))
 			(completing-read (concat "Book: ")
-					 *dtk-books*))))))
+					 dtk-books))))))
       (let* ((ch (if bk
 		     (number-to-string ch)
 		   (read-from-minibuffer "Ch: ")))
@@ -106,10 +106,10 @@
 	      (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
 	  (dtk-switch-to-dtk-buffer)
 	  (dtk-mode)
-	  (setq word-wrap *dtk-word-wrap*) 
+	  (setq word-wrap dtk-word-wrap) 
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke)
-	    (if *dtk-compact-view-p*
+	    (if dtk-compact-view-p
 		(dtk-compact-region start-point (point)))))))))
 
 (defun dtk-bible--insert-using-diatheke ()
@@ -117,14 +117,14 @@
   (if (executable-find "diatheke")
       (progn
 	;; sanity check
-	(if (not *dtk-module*)
-	    (warn "Define *dtk-module* ('m') first")
+	(if (not dtk-module)
+	    (warn "Define dtk-module ('m') first")
 	  (progn
 	    (call-process "diatheke" nil
 			  dtk-buffer	; insert content in dtk-buffer
 			  t     ; redisplay buffer as output is inserted
 			  ;; arguments: -b KJV k John
-			  "-b" *dtk-module* "-k" book ch-vs)
+			  "-b" dtk-module "-k" book ch-vs)
 	    ;; diatheke outputs verses and then outputs
 	    ;; - a single line with the last verse w/o reference followed by
 	    ;; - a single line with the module followed by
@@ -147,7 +147,7 @@
 	      (minibuffer-with-setup-hook 'minibuffer-complete
 	 	(let ((completion-ignore-case t))
 	 	  (completing-read (concat "Book: ")
-	 			   *dtk-books*)))))
+	 			   dtk-books)))))
 	 (ch (if bk
 	 	 ch
 	       (read-from-minibuffer "Ch: ")))
@@ -165,10 +165,10 @@
     (let ((start-point (point)))
       (call-process "diatheke" nil
 		    dtk-buffer
-		    t "-b" *dtk-module* 
+		    t "-b" dtk-module 
 		    ;"-m" "100"		; sanity cap
 		    "-k" book ch-vs)
-      ;; (if *dtk-compact-view-p*
+      ;; (if dtk-compact-view-p
       ;; 	  (let ((end-point (point)))
       ;; 	    (goto-char start-point)
       ;; 	    ;; if succeeding line is blank, delete it
@@ -202,7 +202,7 @@
     (dtk-mode)
     (call-process "diatheke" nil
 		  dtk-buffer
-		  t "-b" *dtk-module* "-s" "phrase" "-k" word-or-phrase)))
+		  t "-b" dtk-module "-s" "phrase" "-k" word-or-phrase)))
 
 ;;;
 ;;; dtk modules/books
@@ -260,23 +260,23 @@
 	     (completing-read (concat "Module: ")
 			      ;; FIXME: polish up dtk-modulelist and select between 'Generic books', 'Commentaries', 'Biblical Texts', etc. first
 			      (dtk-module-names))))))
-    (if module (setf *dtk-module* module))))
+    (if module (setf dtk-module module))))
 
 ;;;
 ;;; dtk buffer
 ;;; 
 (defun dtk-buffer-exists-p ()
-  (get-buffer *dtk-buffer-name*))
+  (get-buffer dtk-buffer-name))
 
 (defun dtk-clear-dtk-buffer ()
   (interactive)
-  (with-current-buffer *dtk-buffer-name*
+  (with-current-buffer dtk-buffer-name
     (delete-region (progn (beginning-of-buffer) (point))
 		   (progn (end-of-buffer) (point)))))
 
 ;; assume a single buffer named '*dtk*'
 (defun dtk-ensure-dtk-buffer-exists ()
-  (get-buffer-create *dtk-buffer-name*))
+  (get-buffer-create dtk-buffer-name))
 
 (defun dtk-switch-to-dtk-buffer ()
   (switch-to-buffer "*dtk*"))
@@ -392,7 +392,7 @@
 
 (defun dtk-quit ()
   (interactive)
-  (kill-buffer *dtk-buffer-name*))
+  (kill-buffer dtk-buffer-name))
 
 (defun dtk-snug-text-to-citation (&optional gap)
   "If the verse citation verse number is not succeeded by the verse text, bring the text of the next line onto the current line."
@@ -417,8 +417,8 @@
 	       (message "memb")
 	       (search-backward " "))) 
 	;; move to start of chapter name
-	(search-backward-regexp *dtk-books-regexp*)	
-	;; kludge to anticipate any order in *dtk-books-regexp*
+	(search-backward-regexp dtk-books-regexp)	
+	;; kludge to anticipate any order in dtk-books-regexp
 	;; - if citation is at start of buffer, searching for non-word character will fail
 	(if (condition-case nil
 		(progn (search-backward-regexp "\\W")
@@ -434,14 +434,14 @@
 
 ;;
 ;; font lock
-(defvar *dtk-books-font-lock-variable-name-face-string*
+(defvar dtk-books-font-lock-variable-name-face-string
   (concat "^\\("
 	  (mapconcat #'(lambda (book)
 			 book)
 		     ;; treat last book differently
-		     *dtk-books* ; (butlast *dtk-books* 1)
+		     dtk-books ; (butlast dtk-books 1)
 		     "\\|")
-	  ;(car (last *dtk-books*))
+	  ;(car (last dtk-books))
 	  "\\)"))
 
 ;; these could use some TLC/refinement
@@ -449,7 +449,7 @@
 (setq dtk-font-lock-keywords
       (list
        ;; book names
-       (cons *dtk-books-font-lock-variable-name-face-string* 
+       (cons dtk-books-font-lock-variable-name-face-string 
 	     ;;(find-face 'dtk-full-book)
 	     font-lock-variable-name-face  ; Foreground: LightGoldenrod
 	     )
@@ -459,7 +459,7 @@
 	     font-lock-constant-face	; Foreground: Aquamarine
 	     )
        ;; translation/source
-       (list *dtk-module*)))
+       (list dtk-module)))
 
 (defface dtk-full-book 
   '((t ()))
@@ -496,7 +496,7 @@
 
 (defun dtk-make-overlay-verse-number (beg end) 
   (let ((ov (make-overlay beg end
-			  (get-buffer *dtk-buffer-name*)
+			  (get-buffer dtk-buffer-name)
 			  t t)))
     (overlay-put ov 'face 'dtk-verse-number)
     (overlay-put ov 'priority 100)
@@ -533,7 +533,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 (define-key dtk-mode-map "x" 'dtk-follow)
 
 (defun dtk-to-verse-number-font (beg end)
-  (with-current-buffer *dtk-buffer-name*
+  (with-current-buffer dtk-buffer-name
     (dtk-make-overlay-verse-number beg end)
     (add-text-properties
      beg end 
@@ -689,7 +689,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;;
 ;;; establish defaults (relying on dtk code)
 ;;;
-(setf *dtk-module* (or (first (dtk-modules-in-category "Biblical Texts"))
+(setf dtk-module (or (first (dtk-modules-in-category "Biblical Texts"))
 		       (first (dtk-module-names))))
 
 (provide 'dtk)
