@@ -29,4 +29,10 @@
 
 ## See also
 
+
 [diatheke.el](https://github.com/JasonFruit/diatheke.el) is another interface to diatheke.
+
+[sword-converter](https://github.com/alphapapa/sword-converter) converts SWORD module content to JSON and SQLite. Provides search functionality.
+
+[sword-to-org](https://github.com/alphapapa/sword-to-org) converts SWORD modules content to org outlines.
+
