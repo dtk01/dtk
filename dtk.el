@@ -36,6 +36,8 @@
 
 (defvar dtk-buffer-name "*dtk*")
 
+(defvar dtk-search-buffer-name "*dtk-search*")
+
 (defvar dtk-compact-view-p t
   "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
 
@@ -54,7 +56,7 @@
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
   (interactive)
   (if (dtk-buffer-exists-p)
-      (dtk-switch-to-dtk-buffer)
+      (switch-to-buffer-other-window dtk-buffer-name)
     (if (dtk-biblical-texts) 
 	(if (not (dtk-go-to))
 	    (let ((dtk-buffer (dtk-ensure-dtk-buffer-exists)))
@@ -105,7 +107,8 @@
 			   ch)
 		       ""))
 	      (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-	  (dtk-switch-to-dtk-buffer)
+	  ;; if dtk buffer is already established, just move point to it
+	  (switch-to-buffer-other-window dtk-buffer-name)
 	  (dtk-mode)
 	  (setq word-wrap dtk-word-wrap) 
 	  (let ((start-point (point)))
@@ -198,12 +201,12 @@
   "Search for the text string WORD-OR-PHRASE. If WORD-OR-PHRASE is NIL, prompt the user for the search string."
   (interactive)
   (let ((word-or-phrase (or word-or-phrase (read-from-minibuffer "Search: ")))
-	 (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-    (dtk-clear-dtk-buffer)
-    (dtk-switch-to-dtk-buffer)
-    (dtk-mode)
+	(search-buffer (dtk-ensure-search-buffer-exists)))
+    (dtk-clear-search-buffer)
+    (dtk-switch-to-search-buffer)
+    (dtk-search-mode)
     (call-process "diatheke" nil
-		  dtk-buffer
+		  search-buffer
 		  t "-b" dtk-module "-s" "phrase" "-k" word-or-phrase)))
 
 ;;;
@@ -266,7 +269,7 @@
     (if module (setf dtk-module module))))
 
 ;;;
-;;; dtk buffer
+;;; dtk buffers
 ;;; 
 (defun dtk-buffer-exists-p ()
   (get-buffer dtk-buffer-name))
@@ -278,12 +281,24 @@
     (delete-region (progn (beginning-of-buffer) (point))
 		   (progn (end-of-buffer) (point)))))
 
-;; assume a single buffer named '*dtk*'
+(defun dtk-clear-search-buffer ()
+  "Clear the search buffer."
+  (with-current-buffer dtk-search-buffer-name
+    (delete-region (progn (beginning-of-buffer) (point))
+		   (progn (end-of-buffer) (point)))))
+
 (defun dtk-ensure-dtk-buffer-exists ()
   (get-buffer-create dtk-buffer-name))
 
+(defun dtk-ensure-search-buffer-exists ()
+  (get-buffer-create dtk-search-buffer-name))
+
 (defun dtk-switch-to-dtk-buffer ()
-  (switch-to-buffer "*dtk*"))
+  "Switch to the dtk buffer using SWITCH-TO-BUFFER."
+  (switch-to-buffer dtk-buffer-name))
+
+(defun dtk-switch-to-search-buffer ()
+  (switch-to-buffer dtk-search-buffer-name))
 
 ;;;
 ;;; interact with dtk buffers
@@ -394,6 +409,21 @@
 	(dtk-parse-citation-at-point)
       (goto-char start-point)
       (= verse-number 1))))
+
+(defun dtk-preview-citation ()
+  "Preview citation at point."
+  (interactive)
+  ;; lazy man's preview -- append at end of *dtk* buffer so at least it's readable
+  (with-current-buffer dtk-buffer-name
+    ;; (move-point-to-end-of-dtk-buffer)
+    (goto-char (point-max))
+    ;; (add-vertical-line-at-end-of-dtk-buffer)
+    (insert "
+")
+    )
+  ;; (back-to-point-in-search/current-buffer)
+  (dtk-follow)
+  )
 
 (defun dtk-quit ()
   "Quit."
@@ -545,6 +575,13 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
      beg end 
      '(display (raise 0.2)))))
 
+;;;###autoload
+(define-derived-mode dtk-search-mode dtk-mode "dtk-search"
+  "Major mode for interacting with dtk search results."
+  )
+
+(define-key dtk-search-mode-map
+  [return] 'dtk-preview-citation)
 
 ;;;
 ;;; navigating (by book, chapter, and verse)
