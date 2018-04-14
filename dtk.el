@@ -76,7 +76,7 @@
   "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS. Return NIL if specified module is not available."
   (interactive)
   (if (dtk-module-available-p dtk-module)
-      (if (dtk-bible-module-available-p dtk-module)      
+      (if (dtk-bible-module-available-p dtk-module)
 	  (dtk-bible bk ch vs)
 	(dtk-other))
     (progn
@@ -87,7 +87,7 @@
       nil)))
 
 (defun dtk-bible (&optional bk ch vs)
-  "BK is a string. CH is an integer. VS is an integer."
+  "BK is a string. CH is an integer. VS is an integer. If BK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse."
   (if (not (dtk-biblical-texts))
       (warn "One or more Biblical texts must be installed first")
     (let ((book (or bk
@@ -96,10 +96,14 @@
 			(completing-read (concat "Book: ")
 					 dtk-books))))))
       (let* ((ch (if bk
-		     (number-to-string ch)
+		     (if ch
+			 (number-to-string ch)
+		       "")
 		   (read-from-minibuffer "Ch: ")))
 	     (vs (if bk
-		     (number-to-string vs)
+		     (if vs
+			 (number-to-string vs)
+		       "")
 		   (read-from-minibuffer "Vs: "))))
 	(let ((ch-vs (if (not (dtk-empty-sequence-p ch))
 			 (if vs
@@ -695,6 +699,14 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 	 (t
 	  (search-backward-regexp "[0-9]")
 	  (dtk-to-start-of-current-verse)))))
+;;;
+;;; miscellany
+;;;
+(defun dtk-random-point ()
+  (interactive)
+  (let ((book (elt dtk-books (random (length dtk-books)))))
+    (dtk-go-to book nil nil)
+    (goto-char (random (point-max)))))
 
 ;;;
 ;;; utility functions
