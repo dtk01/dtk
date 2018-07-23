@@ -137,7 +137,7 @@
 	    ;; - a single line with the last verse w/o reference followed by
 	    ;; - a single line with the module followed by
 	    ;; - a newline
-	    (end-of-buffer)
+	    (goto-char (point-max))
 	    (join-line)
 	    (kill-whole-line)
 	    (join-line)
@@ -228,19 +228,16 @@
   "Test whether the module specified by MODULE-NAME is locally available."
   (member module-name (dtk-module-names)))
 
-;; CATEGORY: e.g., "Biblical Texts"
 (defun dtk-module-category (category)
-  (assoc (concat category ":") (dtk-modulelist)))
+  "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
+  (assoc category (dtk-modulelist)))
 
-;; return a list of module names
-(defun dtk-module-names () 
+(defun dtk-module-names ()
+  "Return a list of strings, each corresponding to a module name."
   (process-lines "diatheke" "-b" "system" "-k" "modulelistnames"))
 
-(defun dtk-modulelist () 
-  ;; list where each member is a sublist representing a category
-  ;; - each sublist has the form (<category> <module1> <module2> ... <moduleN>)
-  ;; - category of modules looks like "Biblical Texts:"
-  ;; - each category string is succeeded by one or more strings, each describing a module and with the form "ESV : English Standard Version"
+(defun dtk-modulelist ()
+  "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
   (let ((modulelist-strings
 	 (process-lines "diatheke" "-b" "system" "-k" "modulelist"))
 	(modules-by-category nil))
@@ -248,16 +245,22 @@
     (dolist (x modulelist-strings)
       ;; if last character in string is colon (:), assume X represents a category
       (if (= (aref x (1- (length x))) 58)
-	  (push (list x) modules-by-category) 
-	(setf (first modules-by-category) (append (first modules-by-category) (list x)))))
+	  (push (list (subseq x 0 (1- (length x)))) modules-by-category)
+	;; handle "modulename : moduledescription"
+	(let ((colon-position (position 58 x)))
+	  (let ((modulename (subseq x 0 (1- colon-position)))
+		(module-description (subseq x (+ 2 colon-position))))
+	    (setf (first modules-by-category)
+		  (append (first modules-by-category)
+			  (list (list modulename module-description))))))))
     modules-by-category))
 
 (defun dtk-modules-in-category (category) 
   (let ((biblical-text-modules 
 	 (rest (dtk-module-category category))))
     (mapcar 
-     #'(lambda (module-string)
-	 (dtk-string-trim-whitespace (substring module-string 0 (position 58 module-string))))
+     #'(lambda (modulename-description)
+	 (first modulename-description))
      biblical-text-modules)))
 
 ;;;###autoload
@@ -283,13 +286,13 @@
   (interactive)
   (with-current-buffer dtk-buffer-name
     (delete-region (progn (beginning-of-buffer) (point))
-		   (progn (end-of-buffer) (point)))))
+		   (progn (goto-char (point-max)) (point)))))
 
 (defun dtk-clear-search-buffer ()
   "Clear the search buffer."
   (with-current-buffer dtk-search-buffer-name
-    (delete-region (progn (beginning-of-buffer) (point))
-		   (progn (end-of-buffer) (point)))))
+    (delete-region (progn (goto-char (point-min)) (point))
+		   (progn (goto-char (point-max)) (point)))))
 
 (defun dtk-ensure-dtk-buffer-exists ()
   (get-buffer-create dtk-buffer-name))
@@ -317,7 +320,7 @@
   (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp))
 
 (defun dtk-compact-region (&optional start-point end-point)
-  "Helper for DTK-BIBLE."
+  "Helper for DTK-BIBLE. START-POINT and END-POINT specify the region under consideration."
   (interactive)
   (let ((end-point (or end-point (point)))
 	(start-point (or start-point (region-beginning)))) 
@@ -394,7 +397,7 @@
 	(progn (search-forward-regexp "\\W")
 	       (backward-char))
       (error nil
-	     (progn (end-of-buffer)
+	     (progn (goto-char (point-max))
 		    (backward-char)
 		    (message "end-of-buffer"))))
     (setf citation-end-position (point))
@@ -434,14 +437,14 @@
   (interactive)
   (kill-buffer dtk-buffer-name))
 
-(defun dtk-snug-text-to-citation (&optional gap)
+(defun dtk-snug-text-to-citation ()
   "If the verse citation verse number is not succeeded by the verse text, bring the text of the next line onto the current line."
-  (let ((gap (or gap 1)))
-      (if (looking-at "[ \t]*$")		; (dtk-rest-of-line-blank-p)
-	  (progn
-	    (kill-line)
-	    (insert-char ?\u0020  	; space (ascii 32)
-			 1)))))
+  (let ((gap 1))
+    (if (looking-at "[ \t]*$")		; (dtk-rest-of-line-blank-p)
+	(progn
+	  (kill-line)
+	  (insert-char ?\u0020  	; space (ascii 32)
+		       gap)))))
 
 (defun dtk-to-start-of-full-citation ()
   "If point is within a full citation, move the point to the start of the full citation."
@@ -686,7 +689,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 			 '(:chapter :colon :verse))
 		 (search-backward " "))
 		;; do nothing for :space-or-book
-	     	((t nil))))
+	     	(t nil)))
 	 ;; if at a compact citation,
 	 ((dtk-number-at-point (point))
 	  ;; back up to a character which isn't a numeral
@@ -703,6 +706,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;; miscellany
 ;;;
 (defun dtk-random-point ()
+  "Choose a book, at random, in DTK-BOOKS, and then navigate to a random point within that book."
   (interactive)
   (let ((book (elt dtk-books (random (length dtk-books)))))
     (dtk-go-to book nil nil)
@@ -712,7 +716,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;; utility functions
 ;;;
 (defun dtk-alpha-at-point (&optional point)
-  "Match A-Z or a-z."
+  "Match if the character at point is an upper-case or lower-case alphabetical letter character (i.e., in the range A through Z or the range a through z)."
   (let ((char-code (char-after (or point (point)))))
     (or
      (and (>= char-code 65) 
@@ -725,7 +729,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
       (= 0 (length x))))
 
 (defun dtk-number-at-point (&optional point)
-  "More flexible version of NUMBER-AT-POINT."
+  "A more flexible version of NUMBER-AT-POINT. POINT optionally specifies a point."
   (let ((char-code (char-after (or point (point))))) 
     (and (>= char-code 48) 
 	 (<= char-code 57))))
