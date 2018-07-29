@@ -47,6 +47,9 @@
 (defvar dtk-module nil
   "Module currently in use.")
 
+(defvar dtk-module-category nil
+  "Module category last selected by the user.")
+
 ;;
 ;; interact with diatheke 
 ;;
@@ -93,7 +96,7 @@
     (let ((book (or bk
 		    (minibuffer-with-setup-hook 'minibuffer-complete
 		      (let ((completion-ignore-case t))
-			(completing-read (concat "Book: ")
+			(completing-read "Book: "
 					 dtk-books))))))
       (let* ((ch (if bk
 		     (if ch
@@ -154,7 +157,7 @@
 	  (or bk
 	      (minibuffer-with-setup-hook 'minibuffer-complete
 	 	(let ((completion-ignore-case t))
-	 	  (completing-read (concat "Book: ")
+	 	  (completing-read "Book: "
 	 			   dtk-books)))))
 	 (ch (if bk
 	 	 ch
@@ -233,8 +236,10 @@
   (assoc category (dtk-modulelist)))
 
 (defun dtk-module-names ()
-  "Return a list of strings, each corresponding to a module name."
-  (process-lines "diatheke" "-b" "system" "-k" "modulelistnames"))
+  "Return a list of strings, each corresponding to a module name within the module category specified by DTK-MODULE-CATEGORY."
+  (mapcar #'(lambda (shortname-description)
+	      (first shortname-description))
+	  (rest (assoc dtk-module-category (dtk-modulelist)))))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
@@ -264,16 +269,30 @@
      biblical-text-modules)))
 
 ;;;###autoload
+(defun dtk-select-module-category ()
+  "Prompt the user to select a module category."
+  (interactive)
+  (let ((module-category
+	 (minibuffer-with-setup-hook 'minibuffer-complete
+	   (let ((completion-ignore-case t))
+	     (completing-read "Module type: "
+			      (dtk-modulelist))))))
+    (if (and module-category
+	     (not (string= module-category "")))
+	(setf dtk-module-category module-category))))
+
+;;;###autoload
 (defun dtk-select-module ()
   "Prompt the user to select a module."
   (interactive)
   (let ((module 
 	 (minibuffer-with-setup-hook 'minibuffer-complete
 	   (let ((completion-ignore-case t))
-	     (completing-read (concat "Module: ")
-			      ;; FIXME: polish up dtk-modulelist and select between 'Generic books', 'Commentaries', 'Biblical Texts', etc. first
+	     (completing-read "Module: "
 			      (dtk-module-names))))))
-    (if module (setf dtk-module module))))
+    (if (and module
+	     (not (string= module "")))
+	(setf dtk-module module))))
 
 ;;;
 ;;; dtk buffers
@@ -571,6 +590,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 (define-key dtk-mode-map "g" 'dtk-go-to)
 (define-key dtk-mode-map "f" 'dtk-forward-verse)
 (define-key dtk-mode-map "m" 'dtk-select-module)
+(define-key dtk-mode-map "M" 'dtk-select-module-category)
 (define-key dtk-mode-map "s" 'dtk-search)
 (define-key dtk-mode-map "q" 'dtk-quit)
 (define-key dtk-mode-map "x" 'dtk-follow)
