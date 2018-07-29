@@ -79,7 +79,9 @@
   "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS. Return NIL if specified module is not available."
   (interactive)
   (if (dtk-module-available-p dtk-module)
-      (if (dtk-bible-module-available-p dtk-module)
+      ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
+      (if (or (dtk-bible-module-available-p dtk-module)
+	      (dtk-commentary-module-available-p dtk-module))
 	  (dtk-bible bk ch vs)
 	(dtk-other))
     (progn
@@ -151,58 +153,6 @@
   ;; FIXME: this will fail except for Bible and commentary
   (dtk-commentary))
 
-(defun dtk-commentary ()
-  ;; if it's a commentary, we can get away with the same approach...
-  (let* ((book
-	  (or bk
-	      (minibuffer-with-setup-hook 'minibuffer-complete
-	 	(let ((completion-ignore-case t))
-	 	  (completing-read "Book: "
-	 			   dtk-books)))))
-	 (ch (if bk
-	 	 ch
-	       (read-from-minibuffer "Ch: ")))
-	 (vs (if bk
-	 	 vs
-	       (read-from-minibuffer "Vs: ")))
-	 (ch-vs (if ch
-	 	    (if vs
-	 		(concat ch ":" vs)
-	 	      ch)
-	 	  ""))
-	 (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-    (dtk-switch-to-dtk-buffer)
-    (dtk-mode)
-    (let ((start-point (point)))
-      (call-process "diatheke" nil
-		    dtk-buffer
-		    t "-b" dtk-module 
-		    ;"-m" "100"		; sanity cap
-		    "-k" book ch-vs)
-      ;; (if dtk-compact-view-p
-      ;; 	  (let ((end-point (point)))
-      ;; 	    (goto-char start-point)
-      ;; 	    ;; if succeeding line is blank, delete it
-      ;; 	    (delete-blank-lines)
-      ;; 	    (dtk-forward-to-verse-number-end)
-      ;; 	    (while (and (< (point) end-point)
-      ;; 			(condition-case nil
-      ;; 			    (dtk-forward-to-verse-number-end)
-      ;; 			  (error nil)))
-      ;; 	      (unless (dtk-preceding-citation-is-chapter-start-p)
-      ;; 		;; sometimes diatheke inserts a newline after the verse number
-      ;; 		(dtk-snug-text-to-citation)
-      ;; 		(dtk-compact-preceding-citation)
-      ;; 		;; if succeeding line is blank, delete it
-      ;; 		(delete-blank-lines)
-      ;; 		;; what to do here? could...
-      ;; 		;; 1. indent line
-      ;; 		;; ;;(insert-char 32 2)
-      ;; 		;; 2. compact further by merging w/preceding line
-      ;; 		(join-line)		; ? (delete-indentation)
-      ;; 		))))
-      )))
-
 ;;;###autoload
 (defun dtk-search (&optional word-or-phrase)
   "Search for the text string WORD-OR-PHRASE. If WORD-OR-PHRASE is NIL, prompt the user for the search string."
@@ -222,24 +172,28 @@
 
 ;; MODULE: a string, e.g., "KJV"
 (defun dtk-bible-module-available-p (module)
-  (member module (dtk-biblical-texts)))
+  (dtk-module-available-p dtk-module "Biblical Texts"))
 
 (defun dtk-biblical-texts ()
   (dtk-modules-in-category "Biblical Texts"))
 
-(defun dtk-module-available-p (module-name)
+(defun dtk-commentary-module-available-p (module)
+  (dtk-module-available-p dtk-module "Commentaries"))
+
+(defun dtk-module-available-p (module-name &optional module-category)
   "Test whether the module specified by MODULE-NAME is locally available."
-  (member module-name (dtk-module-names)))
+  (member module-name (dtk-module-names module-category)))
 
 (defun dtk-module-category (category)
   "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (assoc category (dtk-modulelist)))
 
-(defun dtk-module-names ()
+(defun dtk-module-names (&optional module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by DTK-MODULE-CATEGORY."
   (mapcar #'(lambda (shortname-description)
 	      (first shortname-description))
-	  (rest (assoc dtk-module-category (dtk-modulelist)))))
+	  (rest (assoc (or module-category dtk-module-category)
+		       (dtk-modulelist)))))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
