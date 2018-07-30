@@ -51,6 +51,18 @@
   "Module category last selected by the user.")
 
 ;;
+;; dictionary
+;;
+(defvar dtk-dict-crossrefs nil
+  "Cross-references for the most recent dictionary lookup.")
+
+(defvar dtk-dict-def nil
+  "Definition and notes for the most recent dictionary lookup.")
+
+(defvar dtk-dict-word nil
+  "The word (raw string) for the most recent dictionary lookup.")
+
+;;
 ;; interact with diatheke 
 ;;
 
@@ -66,6 +78,40 @@
 	      (dtk-switch-to-dtk-buffer)
 	      (dtk-mode)))
       (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
+
+(defun dtk-dictionary (key)
+  "Assume a dictionary module is already selected. KEY is the query key for the dictionary lookup. Sets DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS."
+  ;; $ diatheke -b "StrongsGreek" -k 3
+  (let ((dictionary-entry (process-lines "diatheke" "-b" dtk-module "-k" (int-to-string key))))
+    (dtk-handle-dictionary-entry dictionary-entry)))
+
+(defun dtk-handle-dictionary-entry (dictionary-entry)
+  ;; first line has the form
+  ;; 0006700067:  67  Agrippas  ag-rip'-pas
+  (setf dtk-dict-word (pop dictionary-entry))
+  ;; second and third lines are empty
+  (pop dictionary-entry)
+  (pop dictionary-entry)
+  ;; set definition/notes component
+  (setf dtk-dict-def "")
+  (while (and (not (string= (subseq (dtk-string-trim-whitespace
+				     (first dictionary-entry))
+				    0 4)
+			    "see "))
+	      ;; can we always rely on "(" + <dtk-module> + ")" ending DICTIONARY-ENTRY ?
+	      (not (string= (subseq (first dictionary-entry) 1 (1+ (length dtk-module)))
+			    dtk-module))
+	      )
+    (setf dtk-dict-def (concat dtk-dict-def (pop dictionary-entry))))
+  ;; set cross-references
+  (setf dtk-dict-crossrefs nil)
+  (while (and dictionary-entry
+	      (not (string= (subseq (first dictionary-entry) 1 (1+ (length dtk-module)))
+			    dtk-module)))
+    ;; FIXME: string may end with module name in parentheses; should clean that up
+    (setf dtk-dict-crossrefs (push (pop dictionary-entry)
+				   dtk-dict-crossrefs)))
+  t)
 
 (defun dtk-follow ()
   "Look for full citation under point. If point is indeed at a full citation, insert corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
