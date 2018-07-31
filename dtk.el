@@ -36,6 +36,8 @@
 
 (defvar dtk-buffer-name "*dtk*")
 
+(defvar dtk-dict-buffer-name "*dtk-dict*")
+
 (defvar dtk-search-buffer-name "*dtk-search*")
 
 (defvar dtk-compact-view-p t
@@ -79,35 +81,51 @@
 	      (dtk-mode)))
       (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
 
-(defun dtk-dictionary (key)
-  "Assume a dictionary module is already selected. KEY is the query key for the dictionary lookup. Sets DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS."
+(defun dtk-dictionary (key module)
+  "Sets DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
   ;; $ diatheke -b "StrongsGreek" -k 3
-  (let ((dictionary-entry (process-lines "diatheke" "-b" dtk-module "-k" (int-to-string key))))
-    (dtk-handle-dictionary-entry dictionary-entry)))
+  (let ((dictionary-entry (dtk-dictionary-entry key module)))
+    (dtk-handle-dictionary-entry dictionary-entry module)))
 
-(defun dtk-handle-dictionary-entry (dictionary-entry)
+(defun dtk-dictionary-entry (key module)
+  "Performs a dictionary lookup using the dictionary module MODULE with query key KEY (a string)."
+  ;; $ diatheke -b "StrongsGreek" -k 3
+  (process-lines "diatheke" "-b" module "-k" key))
+
+(defun dtk-handle-dictionary-entry (dictionary-entry module)
   ;; first line has the form
-  ;; 0006700067:  67  Agrippas  ag-rip'-pas
-  (setf dtk-dict-word (pop dictionary-entry))
-  ;; second and third lines are empty
+  ;; 0358803588:  3588  ho   ho, including the feminine
+  (let ((raw-first-line (pop dictionary-entry)))
+    ;; trim text up to colon character
+    (setf dtk-dict-word (subseq raw-first-line (1+ (position ?: raw-first-line)))))
+  (while (not (and (string= (first dictionary-entry) "")
+		   (string= (second dictionary-entry) "")))
+    (setf dtk-dict-word (concat dtk-dict-word (pop dictionary-entry))))
+  ;; two empty lines seem to denote boundary between the word/number/etymology and the description/definition/notes
   (pop dictionary-entry)
   (pop dictionary-entry)
   ;; set definition/notes component
   (setf dtk-dict-def "")
-  (while (and (not (string= (subseq (dtk-string-trim-whitespace
-				     (first dictionary-entry))
-				    0 4)
-			    "see "))
+  (while (and (not (and
+		    (>= (length (first dictionary-entry))
+			4)
+		    (string= (subseq (dtk-string-trim-whitespace
+				      (first dictionary-entry))
+				      0 4)
+			      "see ")))
 	      ;; can we always rely on "(" + <dtk-module> + ")" ending DICTIONARY-ENTRY ?
-	      (not (string= (subseq (first dictionary-entry) 1 (1+ (length dtk-module)))
-			    dtk-module))
-	      )
+	      (not (and (>= (length (first dictionary-entry))
+			    (length module))
+			(string= (subseq (first dictionary-entry) 1 (1+ (length module)))
+				 module))))
     (setf dtk-dict-def (concat dtk-dict-def (pop dictionary-entry))))
   ;; set cross-references
   (setf dtk-dict-crossrefs nil)
   (while (and dictionary-entry
-	      (not (string= (subseq (first dictionary-entry) 1 (1+ (length dtk-module)))
-			    dtk-module)))
+	      (and (>= (length (first dictionary-entry))
+		       (length module))
+		   (not (string= (subseq (first dictionary-entry) 1 (1+ (length module)))
+			     module))))
     ;; FIXME: string may end with module name in parentheses; should clean that up
     (setf dtk-dict-crossrefs (push (pop dictionary-entry)
 				   dtk-dict-crossrefs)))
@@ -504,33 +522,83 @@
 (defun dtk-handle-next-dict-number-in-buffer (&optional beg)
   "Return NIL if a dictionary entry isn't specified at a position succeeding BEG. Otherwise, return a true value."
   (when beg (goto-char beg))
-  (search-forward "<")
-  (if (> (point) beg)
-      ;; Grab the dictionary key/number, assuming a string of the form
-      ;; <XN...N> where X is a single upper-case character and N...N
-      ;; is some integer value.
-      (let ((<-position (point))
-	    (>-position (search-forward ">")))
-	;; DICT-N is the string representation of the dictionary key/number
-	(let ((dict-n (buffer-substring-no-properties (1+ <-position) (1- >-position))))
-	  ;; delete <XN...N> from the buffer
-	  (goto-char >-position)
-	  (delete-char (1- (- <-position >-position)))
-	  ;; Make an overlay for preceding word or phrase. (Just grab
-	  ;; word for now; worry about phrases later)
-	  (let* ((word-end (progn
-			     (backward-to-word 1)
-			     (point)))
-		 (word-start (progn (backward-word 1)
-				    (point)))
-		 (ov (make-overlay word-start word-end)))
-	    (setf (overlay-get ov 'dtk-dict-overlay) t)
-	    (setf (overlay-get ov 'dtk-dict-number) dict-n)
-	    (overlay-put ov 'help-echo dict-n)
-	    (overlay-put ov 'face 'dtk-dict-word)
-	    (goto-char word-end)))
-	t)
-    nil))
+  (if (search-forward "<" nil t 1)
+      (if (> (point) beg)
+	  ;; Grab the dictionary key/number, assuming a string of the form
+	  ;; <XN...N> where X is a single upper-case character and N...N
+	  ;; is some integer value.
+	  (let ((<-position (point))
+		(>-position (search-forward ">")))
+	    ;; DICT-N is the string representation of the dictionary key/number
+	    (let ((dict-n (buffer-substring-no-properties (1+ <-position) (1- >-position)))
+		  ;; G - Strong's Greek
+		  ;; H - Strong's Hebrew
+		  (module-spec (buffer-substring-no-properties <-position (1+ <-position))))
+	      ;; delete <XN...N> from the buffer
+	      (goto-char >-position)
+	      (delete-char (1- (- <-position >-position)))
+	      ;; Make an overlay for preceding word or phrase. (Just grab
+	      ;; word for now; worry about phrases later)
+	      (let* ((word-end (progn
+				 (backward-to-word 1)
+				 (point)))
+		     (word-start (progn (backward-word 1)
+					(point)))
+		     (ov (make-overlay word-start word-end)))
+		(setf (overlay-get ov 'dtk-dict-overlay) t)
+		(setf (overlay-get ov 'dtk-dict-number) dict-n)
+		(setf (overlay-get ov 'dtk-dict-module-spec) module-spec)
+		(overlay-put ov 'help-echo dict-n)
+		(overlay-put ov 'face 'dtk-dict-word)
+		(goto-char word-end)))
+	    t)
+	nil)))
+
+(defun dtk-dict-overlay-at-point ()
+  "Returns an overlay."
+  (let ((overlays (overlays-at (point)))
+	(dtk-dict-overlay nil))
+    (if overlays
+	(catch 'overlays-loop
+	  (dolist (ol overlays)
+	    (when (overlay-get ol 'dtk-dict-overlay)
+	      (setf dtk-dict-overlay ol)
+	      (throw 'overlays-loop nil)))))
+    dtk-dict-overlay))
+
+(defun dtk-dict-show-current-dict ()
+  (get-buffer-create dtk-dict-buffer-name) ;(dtk-ensure-dict-buffer-exists)
+  ;;(dtk-clear-dict-buffer)
+  (with-current-buffer dtk-dict-buffer-name
+    (delete-region (progn (goto-char (point-min)) (point))
+		   (progn (goto-char (point-max)) (point))))
+  (switch-to-buffer dtk-dict-buffer-name) ;(dtk-switch-to-dict-buffer)
+  (dtk-dict-mode)
+  ;; insert dtk-dict-content
+  (insert dtk-dict-word)
+  (insert-char 10)
+  (insert dtk-dict-def)
+  (insert-char 10)
+  (mapc #'(lambda (cr)
+	    (insert cr)
+	    (insert-char 10))
+	dtk-dict-crossrefs))
+
+(defun dtk-show-dict-entry ()
+  "Show Strong's dictionary data for word at point, if possible."
+  (interactive)
+  (let ((dtk-dict-overlay (dtk-dict-overlay-at-point)))
+    (if dtk-dict-overlay
+	(progn
+	  ;; set dict data
+	  (let ((dtk-dict-n (overlay-get dtk-dict-overlay 'dtk-dict-number))
+		(module-spec (overlay-get dtk-dict-overlay 'dtk-dict-module-spec)))
+	    (dtk-dictionary dtk-dict-n
+			    (pcase module-spec
+			      ("G" "StrongsGreek")
+			      ("H" "StrongsHebrew"))))
+	  (dtk-dict-show-current-dict))
+      (message "%s" "No dictionary data"))))
 
 ;;
 ;; dtk major mode
@@ -634,6 +702,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 (define-key dtk-mode-map "m" 'dtk-select-module)
 (define-key dtk-mode-map "M" 'dtk-select-module-category)
 (define-key dtk-mode-map "s" 'dtk-search)
+(define-key dtk-mode-map "S" 'dtk-show-dict-entry)
 (define-key dtk-mode-map "q" 'dtk-quit)
 (define-key dtk-mode-map "x" 'dtk-follow)
 
@@ -651,6 +720,16 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 
 (define-key dtk-search-mode-map
   [return] 'dtk-preview-citation)
+
+;;;###autoload
+(define-derived-mode dtk-dict-mode dtk-mode "dtk-dict"
+  "Major mode for interacting with dtk dict results.")
+
+(defun dtk-dict-quit ()
+  (interactive)
+  (kill-buffer dtk-dict-buffer-name))
+
+(define-key dtk-mode-map "q" 'dtk-dict-quit)
 
 ;;;
 ;;; navigating (by book, chapter, and verse)
