@@ -168,6 +168,9 @@
 	  (setq word-wrap dtk-word-wrap) 
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke)
+	    (if t; dtk-obscure-dict-numbers-p
+		(while (dtk-handle-next-dict-number-in-buffer start-point)
+		  t))
 	    (if dtk-compact-view-p
 		(dtk-compact-region start-point (point)))))))))
 
@@ -183,6 +186,7 @@
 			  dtk-buffer	; insert content in dtk-buffer
 			  t     ; redisplay buffer as output is inserted
 			  ;; arguments: -b KJV k John
+			  "-o" "n"
 			  "-b" dtk-module "-k" book ch-vs)
 	    ;; diatheke outputs verses and then outputs
 	    ;; - a single line with the last verse w/o reference followed by
@@ -489,6 +493,44 @@
 		       (progn (beginning-of-line-text)
 			      nil)))
 	    (forward-char)))))
+
+;;
+;; dictionary: handle dictionary entries and references
+;;
+(defface dtk-dict-word
+  '((t ()))
+  "Face for a word or phrase with a corresponding dictionary entry.")
+
+(defun dtk-handle-next-dict-number-in-buffer (&optional beg)
+  "Return NIL if a dictionary entry isn't specified at a position succeeding BEG. Otherwise, return a true value."
+  (when beg (goto-char beg))
+  (search-forward "<")
+  (if (> (point) beg)
+      ;; Grab the dictionary key/number, assuming a string of the form
+      ;; <XN...N> where X is a single upper-case character and N...N
+      ;; is some integer value.
+      (let ((<-position (point))
+	    (>-position (search-forward ">")))
+	;; DICT-N is the string representation of the dictionary key/number
+	(let ((dict-n (buffer-substring-no-properties (1+ <-position) (1- >-position))))
+	  ;; delete <XN...N> from the buffer
+	  (goto-char >-position)
+	  (delete-char (1- (- <-position >-position)))
+	  ;; Make an overlay for preceding word or phrase. (Just grab
+	  ;; word for now; worry about phrases later)
+	  (let* ((word-end (progn
+			     (backward-to-word 1)
+			     (point)))
+		 (word-start (progn (backward-word 1)
+				    (point)))
+		 (ov (make-overlay word-start word-end)))
+	    (setf (overlay-get ov 'dtk-dict-overlay) t)
+	    (setf (overlay-get ov 'dtk-dict-number) dict-n)
+	    (overlay-put ov 'help-echo dict-n)
+	    (overlay-put ov 'face 'dtk-dict-word)
+	    (goto-char word-end)))
+	t)
+    nil))
 
 ;;
 ;; dtk major mode
