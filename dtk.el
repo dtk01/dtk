@@ -4,6 +4,7 @@
 
 ;; Author: David Thompson
 ;; Keywords: hypermedia
+;; Package-Requires: ((emacs "24") (seq "1.9"))
 ;; Version: 0.2
 ;; URL: https://github.com/dtk01/dtk.el
 
@@ -27,12 +28,12 @@
 
 (defvar dtk-books-regexp nil)
 (setq dtk-books-regexp
-  (let ((raw-regexp "")) 
-    (mapc #'(lambda (book)
-	      (setq raw-regexp
-		    (concat raw-regexp "\\(" book "\\)\\|")))
-	 dtk-books) 
-    (substring raw-regexp 0 (- (length raw-regexp) 2))))
+      (let ((raw-regexp "")) 
+	(mapc #'(lambda (book)
+		  (setq raw-regexp
+			(concat raw-regexp "\\(" book "\\)\\|")))
+	      dtk-books) 
+	(substring raw-regexp 0 (- (length raw-regexp) 2))))
 
 (defvar dtk-buffer-name "*dtk*")
 
@@ -97,9 +98,9 @@
   ;; 0358803588:  3588  ho   ho, including the feminine
   (let ((raw-first-line (pop dictionary-entry)))
     ;; trim text up to colon character
-    (setf dtk-dict-word (subseq raw-first-line (1+ (position ?: raw-first-line)))))
-  (while (not (and (string= (first dictionary-entry) "")
-		   (string= (second dictionary-entry) "")))
+    (setf dtk-dict-word (seq-subseq raw-first-line (1+ (seq-position raw-first-line ?:)))))
+  (while (not (and (string= (elt dictionary-entry 0) "")
+		   (string= (elt dictionary-entry 1) "")))
     (setf dtk-dict-word (concat dtk-dict-word (pop dictionary-entry))))
   ;; two empty lines seem to denote boundary between the word/number/etymology and the description/definition/notes
   (pop dictionary-entry)
@@ -107,37 +108,38 @@
   ;; set definition/notes component
   (setf dtk-dict-def "")
   (while (and (not (and
-		    (>= (length (first dictionary-entry))
+		    (>= (length (elt dictionary-entry 0))
 			4)
-		    (string= (subseq (dtk-string-trim-whitespace
-				      (first dictionary-entry))
-				      0 4)
-			      "see ")))
+		    (string= (seq-subseq (dtk-string-trim-whitespace
+					  (elt dictionary-entry 0))
+					 0 4)
+			     "see ")))
 	      ;; can we always rely on "(" + <dtk-module> + ")" ending DICTIONARY-ENTRY ?
-	      (not (and (>= (length (first dictionary-entry))
+	      (not (and (>= (length (elt dictionary-entry 0))
 			    (length module))
-			(string= (subseq (first dictionary-entry) 1 (1+ (length module)))
+			(string= (seq-subseq (elt dictionary-entry 0) 1 (1+ (length module)))
 				 module))))
     (setf dtk-dict-def (concat dtk-dict-def (pop dictionary-entry))))
   ;; set cross-references
   (setf dtk-dict-crossrefs nil)
   (while (and dictionary-entry
-	      (and (>= (length (first dictionary-entry))
+	      (and (>= (length (elt dictionary-entry 0))
 		       (length module))
-		   (not (string= (subseq (first dictionary-entry) 1 (1+ (length module)))
-			     module))))
+		   (not (string= (seq-subseq (elt dictionary-entry 0) 1 (1+ (length module)))
+				 module))))
     ;; FIXME: string may end with module name in parentheses; should clean that up
     (setf dtk-dict-crossrefs (push (pop dictionary-entry)
 				   dtk-dict-crossrefs)))
   t)
 
 (defun dtk-follow ()
-  "Look for full citation under point. If point is indeed at a full citation, insert corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
+  "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
   (interactive)
   (dtk-to-start-of-full-citation)
-  (multiple-value-bind (bk ch vs)
-      (dtk-parse-citation-at-point)
-    (dtk-go-to bk ch vs)))
+  (let ((bk-ch-vs (dtk-parse-citation-at-point)))
+    (dtk-go-to (elt bk-ch-vs 0)
+	       (elt bk-ch-vs 1)
+	       (elt bk-ch-vs 2))))
 
 (defun dtk-go-to (&optional bk ch vs)
   "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS. Return NIL if specified module is not available."
@@ -151,7 +153,7 @@
     (progn
       (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
 	       dtk-module
-	       (key-description (first (where-is-internal 'dtk-select-module dtk-mode-map)))
+	       (key-description (elt (where-is-internal 'dtk-select-module dtk-mode-map) 0))
 	       (dtk-module-names))
       nil)))
 
@@ -185,14 +187,14 @@
 	  (dtk-mode)
 	  (setq word-wrap dtk-word-wrap) 
 	  (let ((start-point (point)))
-	    (dtk-bible--insert-using-diatheke)
+	    (dtk-bible--insert-using-diatheke book ch-vs)
 	    (if t; dtk-obscure-dict-numbers-p
 		(while (dtk-handle-next-dict-number-in-buffer start-point)
 		  t))
 	    (if dtk-compact-view-p
 		(dtk-compact-region start-point (point)))))))))
 
-(defun dtk-bible--insert-using-diatheke ()
+(defun dtk-bible--insert-using-diatheke (book ch-vs)
   "Insert specified content into current buffer."
   (if (executable-find "diatheke")
       (progn
@@ -200,8 +202,7 @@
 	(if (not dtk-module)
 	    (warn "Define dtk-module ('m') first")
 	  (progn
-	    (call-process "diatheke" nil
-			  dtk-buffer	; insert content in dtk-buffer
+	    (call-process "diatheke" nil t
 			  t     ; redisplay buffer as output is inserted
 			  ;; arguments: -b KJV k John
 			  "-o" "n"
@@ -218,8 +219,7 @@
     (message (concat "diatheke not found found; please verify diatheke is installed"))))
 
 (defun dtk-other ()
-  ;; FIXME: this will fail except for Bible and commentary
-  (dtk-commentary))
+  (error "Unsupported"))
 
 ;;;###autoload
 (defun dtk-search (&optional word-or-phrase)
@@ -259,9 +259,9 @@
 (defun dtk-module-names (&optional module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by DTK-MODULE-CATEGORY."
   (mapcar #'(lambda (shortname-description)
-	      (first shortname-description))
-	  (rest (assoc (or module-category dtk-module-category)
-		       (dtk-modulelist)))))
+	      (elt shortname-description 0))
+	  (cdr (assoc (or module-category dtk-module-category)
+		      (dtk-modulelist)))))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
@@ -272,22 +272,22 @@
     (dolist (x modulelist-strings)
       ;; if last character in string is colon (:), assume X represents a category
       (if (= (aref x (1- (length x))) 58)
-	  (push (list (subseq x 0 (1- (length x)))) modules-by-category)
+	  (push (list (seq-subseq x 0 (1- (length x)))) modules-by-category)
 	;; handle "modulename : moduledescription"
-	(let ((colon-position (position 58 x)))
-	  (let ((modulename (subseq x 0 (1- colon-position)))
-		(module-description (subseq x (+ 2 colon-position))))
-	    (setf (first modules-by-category)
-		  (append (first modules-by-category)
+	(let ((colon-position (seq-position x 58)))
+	  (let ((modulename (seq-subseq x 0 (1- colon-position)))
+		(module-description (seq-subseq x (+ 2 colon-position))))
+	    (setf (elt modules-by-category 0)
+		  (append (elt modules-by-category 0)
 			  (list (list modulename module-description))))))))
     modules-by-category))
 
 (defun dtk-modules-in-category (category) 
   (let ((biblical-text-modules 
-	 (rest (dtk-module-category category))))
+	 (cdr (dtk-module-category category))))
     (mapcar 
      #'(lambda (modulename-description)
-	 (first modulename-description))
+	 (elt modulename-description 0))
      biblical-text-modules)))
 
 ;;;###autoload
@@ -326,7 +326,7 @@
   "Clear the dtk buffer."
   (interactive)
   (with-current-buffer dtk-buffer-name
-    (delete-region (progn (beginning-of-buffer) (point))
+    (delete-region (progn (goto-char (point-min)) (point))
 		   (progn (goto-char (point-max)) (point)))))
 
 (defun dtk-clear-search-buffer ()
@@ -418,9 +418,10 @@
 			 t))
 
 (defun dtk-parse-citation-at-point () 
-  "Assume point is at the start of a full verse citation."
+  "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
 	(book-end-position nil)
+	(chapter-start-position nil)
 	(colon1-position nil)
 	;; CITATION-END-POSITION: last position in the full citation
 	(citation-end-position nil))
@@ -442,7 +443,7 @@
 		    (backward-char)
 		    (message "end-of-buffer"))))
     (setf citation-end-position (point))
-    (values
+    (list
      (buffer-substring-no-properties book-start-position (1+ book-end-position))
      (string-to-number (buffer-substring-no-properties chapter-start-position (1- colon1-position)))
      (string-to-number 
@@ -453,10 +454,10 @@
   (let ((start-point (point)))
     (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
     (beginning-of-line)
-    (multiple-value-bind (book chapter verse-number)
-	(dtk-parse-citation-at-point)
+    (let ((bk-ch-vs (dtk-parse-citation-at-point)))
       (goto-char start-point)
-      (= verse-number 1))))
+      (= (elt bk-ch-vs 2)		; verse number
+	 1))))
 
 (defun dtk-preview-citation ()
   "Preview citation at point."
@@ -466,12 +467,9 @@
     ;; (move-point-to-end-of-dtk-buffer)
     (goto-char (point-max))
     ;; (add-vertical-line-at-end-of-dtk-buffer)
-    (insert "
-")
-    )
+    (insert-char 10))
   ;; (back-to-point-in-search/current-buffer)
-  (dtk-follow)
-  )
+  (dtk-follow))
 
 (defun dtk-quit ()
   "Quit."
@@ -517,7 +515,8 @@
 ;;
 (defface dtk-dict-word
   '((t ()))
-  "Face for a word or phrase with a corresponding dictionary entry.")
+  "Face for a word or phrase with a corresponding dictionary entry."
+  :group 'dtk-faces)
 
 (defun dtk-handle-next-dict-number-in-buffer (&optional beg)
   "Return NIL if a dictionary entry isn't specified at a position succeeding BEG. Otherwise, return a true value."
@@ -635,7 +634,8 @@
 
 (defface dtk-full-book 
   '((t ()))
-  "Face for book component of a full citation.")
+  "Face for book component of a full citation."
+  :group 'dtk-faces)
 (set-face-background 'dtk-full-book "gray50")
 (set-face-foreground 'dtk-full-book "red")
 (set-face-attribute 'dtk-full-book nil 
@@ -643,14 +643,16 @@
 
 (defface dtk-full-verse-number 
   '((t ()))
-  "Face for marking verse number component of a full citation.")
+  "Face for marking verse number component of a full citation."
+  :group 'dtk-faces)
 (set-face-background 'dtk-full-verse-number nil)
 (set-face-attribute 'dtk-full-verse-number nil 
 		    :height 1.2)
 
 (defface dtk-compact-verse-number 
   '((t ()))
-  "Face for marking verse number.")
+  "Face for marking verse number."
+  :group 'dtk-faces)
 (set-face-background 'dtk-compact-verse-number nil)
 (set-face-attribute 'dtk-compact-verse-number nil 
 		    :height 0.8)
@@ -715,8 +717,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 
 ;;;###autoload
 (define-derived-mode dtk-search-mode dtk-mode "dtk-search"
-  "Major mode for interacting with dtk search results."
-  )
+  "Major mode for interacting with dtk search results.")
 
 (define-key dtk-search-mode-map
   [return] 'dtk-preview-citation)
@@ -726,6 +727,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   "Major mode for interacting with dtk dict results.")
 
 (defun dtk-dict-quit ()
+  "Leave the *dtk-dict* buffer."
   (interactive)
   (kill-buffer dtk-dict-buffer-name))
 
@@ -889,8 +891,8 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;;
 ;;; establish defaults (relying on dtk code)
 ;;;
-(setf dtk-module (or (first (dtk-modules-in-category "Biblical Texts"))
-		       (first (dtk-module-names))))
+(setf dtk-module (or (elt (dtk-modules-in-category "Biblical Texts") 0)
+		     (elt (dtk-module-names) 0)))
 
 (provide 'dtk)
 ;;; dtk.el ends here
