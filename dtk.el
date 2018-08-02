@@ -84,17 +84,16 @@
 
 (defun dtk-dictionary (key module)
   "Sets DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
-  ;; $ diatheke -b "StrongsGreek" -k 3
-  (let ((dictionary-entry (dtk-dictionary-entry key module)))
-    (dtk-handle-dictionary-entry dictionary-entry module)))
+  (dtk-dict-handle-raw-lines (dtk-dict-raw-lines) module))
 
-(defun dtk-dictionary-entry (key module)
-  "Performs a dictionary lookup using the dictionary module MODULE with query key KEY (a string)."
+(defun dtk-dict-raw-lines (key module)
+  "Performs a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Returns a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
   (process-lines "diatheke" "-b" module "-k" key))
 
-(defun dtk-handle-dictionary-entry (dictionary-entry module)
-  ;; first line has the form
+(defun dtk-dict-handle-raw-lines (dictionary-entry module)
+  "Helper function for DTK-DICTIONARY. Handles list of strings corresponding to lines of diatheke output associated with a dictionary query."
+  ;; The first line begins with an integer succeeded by a colon character. Example:
   ;; 0358803588:  3588  ho   ho, including the feminine
   (let ((raw-first-line (pop dictionary-entry)))
     ;; trim text up to colon character
