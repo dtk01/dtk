@@ -153,7 +153,7 @@
       (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
 	       dtk-module
 	       (key-description (elt (where-is-internal 'dtk-select-module dtk-mode-map) 0))
-	       (dtk-module-names))
+	       (dtk-module-names dtk-module-category))
       nil)))
 
 (defun dtk-bible (&optional bk ch vs)
@@ -248,19 +248,28 @@
   (dtk-module-available-p dtk-module "Commentaries"))
 
 (defun dtk-module-available-p (module-name &optional module-category)
-  "Test whether the module specified by MODULE-NAME is locally available. MODULE-CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
-  (member module-name (dtk-module-names module-category)))
+  "Test whether the module specified by MODULE-NAME is locally available. MODULE-CATEGORY is either NIL or a string such as 'Biblical Texts' or 'Commentaries'. If NIL, test across all modules (don't limit by module category)."
+  (member module-name (dtk-module-names (or module-category :all))))
 
 (defun dtk-module-category (category)
   "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (assoc category (dtk-modulelist)))
 
-(defun dtk-module-names (&optional module-category)
-  "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY."
-  (mapcar #'(lambda (shortname-description)
-	      (elt shortname-description 0))
-	  (cdr (assoc (or module-category dtk-module-category)
-		      (dtk-modulelist)))))
+(defun dtk-module-names (module-category)
+  "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY. If MODULE-CATEGORY is :all, return all module names across all categories."
+  (cond ((eq module-category :all)
+	 (let ((shortnames nil))
+	   (mapc #'(lambda (category-data)
+		     (mapc #'(lambda (shortname-description)
+			       (push (elt shortname-description 0) shortnames))
+			   (cdr category-data)))
+		 (dtk-modulelist))
+	   shortnames))
+	((stringp module-category)
+	 (mapcar #'(lambda (shortname-description)
+		     (elt shortname-description 0))
+		 (cdr (assoc (or module-category dtk-module-category)
+			     (dtk-modulelist)))))))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
@@ -310,7 +319,7 @@
 	 (minibuffer-with-setup-hook 'minibuffer-complete
 	   (let ((completion-ignore-case t))
 	     (completing-read "Module: "
-			      (dtk-module-names))))))
+			      (dtk-module-names dtk-module-category))))))
     (if (and module
 	     (not (string= module "")))
 	(setf dtk-module module))))
@@ -891,7 +900,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;; establish defaults (relying on dtk code)
 ;;;
 (setf dtk-module (or (elt (dtk-modules-in-category "Biblical Texts") 0)
-		     (elt (dtk-module-names) 0)))
+		     (elt (dtk-module-names dtk-module-category) 0)))
 
 (provide 'dtk)
 ;;; dtk.el ends here
