@@ -899,8 +899,10 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;;
 ;;; establish defaults (relying on dtk code)
 ;;;
-(setf dtk-module (or (elt (dtk-modules-in-category "Biblical Texts") 0)
-		     (elt (dtk-module-names dtk-module-category) 0)))
+(unless dtk-module-category
+  (setf dtk-module-category "Biblical Texts"))
+(unless dtk-module
+  (setf dtk-module (elt (dtk-module-names dtk-module-category) 0)))
 
 (provide 'dtk)
 ;;; dtk.el ends here
