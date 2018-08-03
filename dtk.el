@@ -11,14 +11,14 @@
 ;;; Commentary:
 
 ;; This package provides access to SWORD content via diatheke, facilitating
-;; reading a Biblical text, or other diatheke-accessible material, in Emacs. 
+;; reading a Biblical text, or other diatheke-accessible material, in Emacs.
 
 ;; To browse to a particular text, use `dtk`.
 
 ;;; Code:
 
 (defvar dtk-books nil)
-(setq dtk-books 
+(setq dtk-books
       '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
 	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians"
 	"Galatians" ; "Galations"
@@ -28,11 +28,11 @@
 
 (defvar dtk-books-regexp nil)
 (setq dtk-books-regexp
-      (let ((raw-regexp "")) 
+      (let ((raw-regexp ""))
 	(mapc #'(lambda (book)
 		  (setq raw-regexp
 			(concat raw-regexp "\\(" book "\\)\\|")))
-	      dtk-books) 
+	      dtk-books)
 	(substring raw-regexp 0 (- (length raw-regexp) 2))))
 
 (defvar dtk-buffer-name "*dtk*")
@@ -66,7 +66,7 @@
   "The word (raw string) for the most recent dictionary lookup.")
 
 ;;
-;; interact with diatheke 
+;; interact with diatheke
 ;;
 
 ;;;###autoload
@@ -75,7 +75,7 @@
   (interactive)
   (if (dtk-buffer-exists-p)
       (switch-to-buffer-other-window dtk-buffer-name)
-    (if (dtk-biblical-texts) 
+    (if (dtk-biblical-texts)
 	(if (not (dtk-go-to))
 	    (let ((dtk-buffer (dtk-ensure-dtk-buffer-exists)))
 	      (dtk-switch-to-dtk-buffer)
@@ -83,16 +83,16 @@
       (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
 
 (defun dtk-dictionary (key module)
-  "Sets DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
+  "Set DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
   (dtk-dict-handle-raw-lines (dtk-dict-raw-lines) module))
 
 (defun dtk-dict-raw-lines (key module)
-  "Performs a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Returns a list of lines, each corresponding to a line of output from invocation of diatheke."
+  "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
   (process-lines "diatheke" "-b" module "-k" key))
 
 (defun dtk-dict-handle-raw-lines (lines module)
-  "Helper function for DTK-DICTIONARY. Handles list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query."
+  "Helper function for DTK-DICTIONARY. Handles list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE."
   ;; The first line begins with an integer succeeded by a colon character. Example:
   ;; 0358803588:  3588  ho   ho, including the feminine
   (let ((raw-first-line (pop lines)))
@@ -184,7 +184,7 @@
 	  ;; if dtk buffer is already established, just move point to it
 	  (switch-to-buffer-other-window dtk-buffer-name)
 	  (dtk-mode)
-	  (setq word-wrap dtk-word-wrap) 
+	  (setq word-wrap dtk-word-wrap)
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke book ch-vs)
 	    (if t; dtk-obscure-dict-numbers-p
@@ -194,7 +194,7 @@
 		(dtk-compact-region start-point (point)))))))))
 
 (defun dtk-bible--insert-using-diatheke (book ch-vs)
-  "Insert specified content into current buffer."
+  "Insert content specified by BOOK and CH-VS into the current buffer."
   (if (executable-find "diatheke")
       (progn
 	;; sanity check
@@ -248,7 +248,7 @@
   (dtk-module-available-p dtk-module "Commentaries"))
 
 (defun dtk-module-available-p (module-name &optional module-category)
-  "Test whether the module specified by MODULE-NAME is locally available."
+  "Test whether the module specified by MODULE-NAME is locally available. MODULE-CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (member module-name (dtk-module-names module-category)))
 
 (defun dtk-module-category (category)
@@ -256,7 +256,7 @@
   (assoc category (dtk-modulelist)))
 
 (defun dtk-module-names (&optional module-category)
-  "Return a list of strings, each corresponding to a module name within the module category specified by DTK-MODULE-CATEGORY."
+  "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY."
   (mapcar #'(lambda (shortname-description)
 	      (elt shortname-description 0))
 	  (cdr (assoc (or module-category dtk-module-category)
@@ -281,10 +281,10 @@
 			  (list (list modulename module-description))))))))
     modules-by-category))
 
-(defun dtk-modules-in-category (category) 
-  (let ((biblical-text-modules 
+(defun dtk-modules-in-category (category)
+  (let ((biblical-text-modules
 	 (cdr (dtk-module-category category))))
-    (mapcar 
+    (mapcar
      #'(lambda (modulename-description)
 	 (elt modulename-description 0))
      biblical-text-modules)))
@@ -306,7 +306,7 @@
 (defun dtk-select-module ()
   "Prompt the user to select a module."
   (interactive)
-  (let ((module 
+  (let ((module
 	 (minibuffer-with-setup-hook 'minibuffer-complete
 	   (let ((completion-ignore-case t))
 	     (completing-read "Module: "
@@ -363,7 +363,7 @@
   "Helper for DTK-BIBLE. START-POINT and END-POINT specify the region under consideration."
   (interactive)
   (let ((end-point (or end-point (point)))
-	(start-point (or start-point (region-beginning)))) 
+	(start-point (or start-point (region-beginning))))
     (goto-char start-point)
     ;; if succeeding line is blank, delete it
     (delete-blank-lines)
@@ -380,7 +380,7 @@
 	(cond ((dtk-preceding-citation-is-chapter-start-p)
 	       ;; clean up ugly trailing colon
 	       (delete-char -1))
-	      (t 
+	      (t
 	       ;; sometimes diatheke inserts a newline after the verse number
 	       (dtk-snug-text-to-citation)
 	       (dtk-compact-preceding-citation)
@@ -403,7 +403,7 @@
     ;; verse number is preceded by space or start of line
     (search-forward-regexp "[0-9]+")
     ;; change verse number font appearance
-    (dtk-to-verse-number-font start (point)))  
+    (dtk-to-verse-number-font start (point)))
   ;; delete colon succeeding verse number
   (search-forward ":")
   (delete-region (1- (point)) (point)))
@@ -416,7 +416,7 @@
 			 nil
 			 t))
 
-(defun dtk-parse-citation-at-point () 
+(defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
 	(book-end-position nil)
@@ -445,7 +445,7 @@
     (list
      (buffer-substring-no-properties book-start-position (1+ book-end-position))
      (string-to-number (buffer-substring-no-properties chapter-start-position (1- colon1-position)))
-     (string-to-number 
+     (string-to-number
       (buffer-substring-no-properties colon1-position citation-end-position)))))
 
 (defun dtk-preceding-citation-is-chapter-start-p ()
@@ -496,9 +496,9 @@
 	      ((member full-citation-component
 		       '(:chapter :colon :verse))
 	       (message "memb")
-	       (search-backward " "))) 
+	       (search-backward " ")))
 	;; move to start of chapter name
-	(search-backward-regexp dtk-books-regexp)	
+	(search-backward-regexp dtk-books-regexp)
 	;; kludge to anticipate any order in dtk-books-regexp
 	;; - if citation is at start of buffer, searching for non-word character will fail
 	(if (condition-case nil
@@ -553,7 +553,7 @@
 	nil)))
 
 (defun dtk-dict-overlay-at-point ()
-  "Returns an overlay."
+  "Return an overlay."
   (let ((overlays (overlays-at (point)))
 	(dtk-dict-overlay nil))
     (if overlays
@@ -619,41 +619,41 @@
 (setq dtk-font-lock-keywords
       (list
        ;; book names
-       (cons dtk-books-font-lock-variable-name-face-string 
+       (cons dtk-books-font-lock-variable-name-face-string
 	     ;;(find-face 'dtk-full-book)
 	     font-lock-variable-name-face  ; Foreground: LightGoldenrod
 	     )
        ;; chapter and verse numbers
-       (cons "\\([0-9]*\\)" 
+       (cons "\\([0-9]*\\)"
 	     ;;(find-face 'dtk-full-verse-number)
 	     font-lock-constant-face	; Foreground: Aquamarine
 	     )
        ;; translation/source
        (list dtk-module)))
 
-(defface dtk-full-book 
+(defface dtk-full-book
   '((t ()))
   "Face for book component of a full citation."
   :group 'dtk-faces)
 (set-face-background 'dtk-full-book "gray50")
 (set-face-foreground 'dtk-full-book "red")
-(set-face-attribute 'dtk-full-book nil 
+(set-face-attribute 'dtk-full-book nil
 		    :height 1.2)
 
-(defface dtk-full-verse-number 
+(defface dtk-full-verse-number
   '((t ()))
   "Face for marking verse number component of a full citation."
   :group 'dtk-faces)
 (set-face-background 'dtk-full-verse-number nil)
-(set-face-attribute 'dtk-full-verse-number nil 
+(set-face-attribute 'dtk-full-verse-number nil
 		    :height 1.2)
 
-(defface dtk-compact-verse-number 
+(defface dtk-compact-verse-number
   '((t ()))
   "Face for marking verse number."
   :group 'dtk-faces)
 (set-face-background 'dtk-compact-verse-number nil)
-(set-face-attribute 'dtk-compact-verse-number nil 
+(set-face-attribute 'dtk-compact-verse-number nil
 		    :height 0.8)
 
 ;;
@@ -667,7 +667,7 @@
 ;; (defvar dtk-mode-map nil
 ;;   "Major mode keymap for `dtk-mode'.")
 
-(defun dtk-make-overlay-verse-number (beg end) 
+(defun dtk-make-overlay-verse-number (beg end)
   (let ((ov (make-overlay beg end
 			  (get-buffer dtk-buffer-name)
 			  t t)))
@@ -711,7 +711,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (with-current-buffer dtk-buffer-name
     (dtk-make-overlay-verse-number beg end)
     (add-text-properties
-     beg end 
+     beg end
      '(display (raise 0.2)))))
 
 ;;;###autoload
@@ -739,7 +739,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   ;; could be at a compact citation or at a full citation (e.g., 'John 1:1')
 
   ;; if at a numeral character, assume at a verse or chapter number
-  (or (dtk-number-at-point (point)) 
+  (or (dtk-number-at-point (point))
       (dtk-at-verse-full-citation?)))
 
 (defun dtk-at-verse-full-citation? ()
@@ -768,8 +768,8 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
        (looking-back "[[:digit:]]:[[:digit:]]?[[:digit:]]?" 5)))
 
 (defun dtk-at-verse-full-citation-space-or-book? ()
-  (or (and (= 32 (char-after (point)))	; space character? 
-	   (or 
+  (or (and (= 32 (char-after (point)))
+	   (or
 	    ;; if at a space, ask if it precedes ch:v
 	    (looking-at " [[:digit:]]+:[[:digit:]]")
 	    ;; if at a space, ask if it precedes something like 'John 3:5'
@@ -780,7 +780,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
       (and (dtk-alpha-at-point (point))
 	   (or
 	    ;; this misses any book that isn't a single word (e.g., 'I John')
-	    (looking-at "\\w+ [[:digit:]]+:[[:digit:]]") 
+	    (looking-at "\\w+ [[:digit:]]+:[[:digit:]]")
 	    ;; catch the possibility that we're at the 'I' in something like 'I John 1:1'
 	    ;; FIXME: this will erroneously identify the end of the previous verse as part of the succeeding citation if the previous verse ends with an 'I' (seems unlikely but...)
 	    (looking-at "\\(\\(I \\)\\|\\(II \\)\\)\\w+ [[:digit:]]+:[[:digit:]]")))))
@@ -802,9 +802,9 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (let ((at-full-citation-p (dtk-at-verse-full-citation?)))
    (cond (at-full-citation-p
 	  ;; move to end of citation
-	  (cond ((member at-full-citation-p 
+	  (cond ((member at-full-citation-p
 			 '(:chapter :colon :verse))
-		 (search-forward " ")) 
+		 (search-forward " "))
 		;; :space-or-book
 	     	((eq at-full-citation-p :space-or-book)
 		 (search-forward ":")
@@ -827,7 +827,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
    (cond (at-full-citation-p
 	  ;; move to start of citation
 	  ;; FIXME: this only guarantees move close to start, not to exact start
-	  (cond ((member at-full-citation-p 
+	  (cond ((member at-full-citation-p
 			 '(:chapter :colon :verse))
 		 (search-backward " "))
 		;; do nothing for :space-or-book
@@ -858,12 +858,12 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;; utility functions
 ;;;
 (defun dtk-alpha-at-point (&optional point)
-  "Match if the character at point is an upper-case or lower-case alphabetical letter character (i.e., in the range A through Z or the range a through z)."
+  "Match if the character at point POINT (defaults to current point) is an upper-case or lower-case alphabetical letter character (i.e., in the range A through Z or the range a through z)."
   (let ((char-code (char-after (or point (point)))))
     (or
-     (and (>= char-code 65) 
+     (and (>= char-code 65)
 	  (<= char-code 90))
-     (and (>= char-code 97) 
+     (and (>= char-code 97)
 	  (<= char-code 122)))))
 
 (defun dtk-empty-sequence-p (x)
@@ -872,15 +872,15 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 
 (defun dtk-number-at-point (&optional point)
   "A more flexible version of NUMBER-AT-POINT. POINT optionally specifies a point."
-  (let ((char-code (char-after (or point (point))))) 
-    (and (>= char-code 48) 
+  (let ((char-code (char-after (or point (point)))))
+    (and (>= char-code 48)
 	 (<= char-code 57))))
 
 ;; several emacs libraries contain a trim function (e.g., org-trim slime-trim-whitespace bbdb-string-trim)
 
 ;; modified bbdb-string-trim
 (defun dtk-string-trim-whitespace (string)
-  "Lose leading and trailing whitespace."
+  "Lose leading and trailing whitespace in string STRING."
   (if (string-match "\\`[ \t\n]+" string)
       (setq string (substring string (match-end 0))))
   (if (string-match "[ \t\n]+\\'" string)
