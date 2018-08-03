@@ -84,7 +84,7 @@
 
 (defun dtk-dictionary (key module)
   "Set DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
-  (dtk-dict-handle-raw-lines (dtk-dict-raw-lines) module))
+  (dtk-dict-handle-raw-lines (dtk-dict-raw-lines key module) module))
 
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
