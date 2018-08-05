@@ -187,7 +187,7 @@
 	  (setq word-wrap dtk-word-wrap)
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke book ch-vs)
-	    (if t; dtk-obscure-dict-numbers-p
+	    (if (not dtk-show-dict-numbers)
 		(while (dtk-handle-next-dict-number-in-buffer start-point)
 		  t))
 	    (if dtk-compact-view-p
@@ -606,6 +606,9 @@
 			      ("H" "StrongsHebrew"))))
 	  (dtk-dict-show-current-dict))
       (message "%s" "No dictionary data"))))
+
+(defvar dtk-show-dict-numbers nil
+  "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
 
 ;;
 ;; dtk major mode
