@@ -113,17 +113,20 @@
 					  (elt lines 0))
 					 0 4)
 			     "see ")))
-	      ;; can we always rely on "(" + <dtk-module> + ")" ending DICTIONARY-ENTRY ?
+	      ;; See note below regarding end of entire diatheke response
 	      (not (and (>= (length (elt lines 0))
-			    (length module))
+			    (+ 2 (length module)))
 			(string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
 				 module))))
     (setf dtk-dict-def (concat dtk-dict-def (pop lines))))
   ;; set cross-references
   (setf dtk-dict-crossrefs nil)
   (while (and lines
+	      ;; We expect the entire diatheke response to end with a
+	      ;; line with the parenthesized module name (e.g.,
+	      ;; "(StrongsHebrew)")
 	      (and (>= (length (elt lines 0))
-		       (length module))
+		       (+ 2 (length module)))
 		   (not (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
 				 module))))
     ;; FIXME: string may end with module name in parentheses; should clean that up
