@@ -190,11 +190,13 @@
 	  (setq word-wrap dtk-word-wrap)
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke book ch-vs)
-	    (if (not dtk-show-dict-numbers)
-		(while (dtk-handle-next-dict-number-in-buffer start-point)
-		  t))
-	    (if dtk-compact-view-p
-		(dtk-compact-region start-point (point)))))))))
+	    (let ((insert-end (point)))
+	      (if dtk-compact-view-p
+		  (dtk-compact-region--sto start-point insert-end))
+	      ;; Remove dictionary support until this is thought through.
+	      (if (not dtk-show-dict-numbers)
+	      	    (while (dtk-handle-next-dict-number-in-buffer start-point)
+	      	      t)))))))))
 
 (defun dtk-bible--insert-using-diatheke (book ch-vs)
   "Insert content specified by BOOK and CH-VS into the current buffer."
@@ -213,11 +215,8 @@
 	    ;; - a single line with the last verse w/o reference followed by
 	    ;; - a single line with the module followed by
 	    ;; - a newline
-	    (goto-char (point-max))
-	    (join-line)
-	    (kill-whole-line)
-	    (join-line)
-	    (kill-whole-line))))
+	    (kill-whole-line -3)
+	    t)))
     (message (concat "diatheke not found found; please verify diatheke is installed"))))
 
 (defun dtk-other ()
@@ -405,6 +404,56 @@
 	       (join-line)		; ? (delete-indentation)
 	       ))))))
 
+;; This parses the specified text using sword-to-org parsing. It
+;; assumes the text specified by START-POINT and END-POINT is raw
+;; diatheke output. After parsing, that text is removed and replaced
+;; with formatted text.
+(defun dtk-compact-region--sto (start-point end-point)
+  "Helper for DTK-BIBLE. START-POINT and END-POINT specify the region under consideration."
+  (let ((verse-plists (dtk-sto--diatheke-parse-text (buffer-substring start-point end-point))))
+    (goto-char start-point)
+    (delete-region start-point end-point)
+    (dtk-insert-verses verse-plists)))
+
+(defun dtk-verse-inserter (bk ch vs text)
+  (when bk
+    (insert bk)
+    (insert-char 32))
+  (when ch
+    (insert (int-to-string ch))
+    (if vs
+	(insert-char 58)
+      (insert-char 32)))
+  (when vs
+    (insert (int-to-string vs))
+    (insert-char 32))
+  (when text
+    (insert text)))
+
+(defun dtk-insert-verses (verse-plists)
+  "Insert formatted text described by VERSE-PLISTS."
+  (cl-flet ()
+    (let ((this-chapter nil))
+      ;; handle first verse
+      (-let (((&plist :book book :chapter chapter :verse verse :text text) (pop verse-plists)))
+	(dtk-verse-inserter book chapter verse text)
+	(setf this-chapter chapter))
+      ;; Format the remaining verses, anticipating changes in chapter
+      ;; number. Assume that book will not change.
+      (cl-loop 
+       for verse-plist in verse-plists
+       do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
+	    (if (equal chapter this-chapter)
+		(progn
+		  (unless (= (char-before) 32)
+		    (insert-char 32))
+		  (dtk-verse-inserter nil nil verse text))
+	      ;; new chapter
+	      (progn
+		(insert-char 10) (insert-char 10)
+		(dtk-verse-inserter book chapter verse text)
+		(setf this-chapter chapter))))))))
+ 
 (defun dtk-compact-preceding-citation ()
   (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
   ;; put point on top of first numeral of verse
@@ -520,6 +569,77 @@
 		       (progn (beginning-of-line-text)
 			      nil)))
 	    (forward-char)))))
+
+;;
+;; parse diatheke raw text from a "Biblical Texts" text
+;;
+
+;; The `dtk-sto` prefix indicates code lifted from alphapapa's sword-to-org
+;; project.
+(defconst dtk-sto--diatheke-parse-line-regexp
+  (rx bol
+      ;; Book name
+      (group-n 1 (minimal-match (1+ anything)))
+      space
+      ;; chapter:verse
+      (group-n 2 (1+ digit)) ":" (group-n 3 (1+ digit)) ":"
+      ;; Passage text (which may start with a newline, in which case
+      ;; no text will be on the same line after chapter:verse)
+      (optional (1+ space)
+                (group-n 4 (1+ anything))))
+  "Regexp to parse each line of output from `diatheke'.")
+
+(defun dtk-sto--diatheke-parse-text (text &optional &key keep-newlines)
+  "Parse TEXT line-by-line, returning list of verse plists.
+When KEEP-NEWLINES is non-nil, keep blank lines in text.
+
+Plists are in format (:book \"Genesis\" :chapter 1 :verse 1
+                      :text \"In the beginning...\").
+
+Example:
+
+\(sword-to-org--diatheke-parse-text
+  (sword-to-org--diatheke-get-text \"ESV\" \"Philemon 1:1-3\")
+  :keep-newlines t)"
+  (cl-loop with result
+           with new-verse
+           for line in (s-lines text)
+           for parsed = (sword-to-org--diatheke-parse-line line)
+           if parsed
+           do (progn
+                (push new-verse result)
+                (setq new-verse parsed))
+           else do (let* ((text (plist-get new-verse :text))
+                          (new-text (concat text
+                                            (if (s-present? line)
+                                                line
+                                              (when keep-newlines "\n")))))
+                     (plist-put new-verse :text new-text))
+           finally return (cdr (progn
+                                 (push new-verse result)
+                                 (nreverse result)))))
+
+(defun dtk-sto--diatheke-parse-line (line)
+  "Return plist from LINE.  If LINE is not the beginning of a verse, return nil.
+You generally don't want to use this directly.  Instead use
+`sword-to-org--diatheke-parse-text'.
+
+Plist is in format (:book \"Genesis\" :chapter 1 :verse 1
+                    :text \"In the beginning...\").
+
+For a complete example, see how
+`sword-to-org--diatheke-parse-text' calls this function."
+  (if (s-present? line)
+      (when (string-match sword-to-org--diatheke-parse-line-regexp line)
+        (let ((book (match-string 1 line))
+              (chapter (string-to-number (match-string 2 line)))
+              (verse (string-to-number (match-string 3 line)))
+              ;; Ensure text is present, which may not be the case if
+              ;; a verse starts with a newline.  See
+              ;; <https://github.com/alphapapa/sword-to-org/issues/2>
+              (text (when (s-present? (match-string 4 line))
+                      (s-trim (match-string 4 line)))))
+          (list :book book :chapter chapter :verse verse :text text)))))
 
 ;;
 ;; dictionary: handle dictionary entries and references
