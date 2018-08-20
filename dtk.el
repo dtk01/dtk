@@ -574,8 +574,8 @@
 ;; parse diatheke raw text from a "Biblical Texts" text
 ;;
 
-;; The `dtk-sto` prefix indicates code lifted from alphapapa's sword-to-org
-;; project.
+;; The `dtk-sto` prefix indicates code derived from alphapapa's
+;; sword-to-org project.
 (defconst dtk-sto--diatheke-parse-line-regexp
   (rx bol
       ;; Book name
@@ -588,6 +588,37 @@
       (optional (1+ space)
                 (group-n 4 (1+ anything))))
   "Regexp to parse each line of output from `diatheke'.")
+
+(defun dtk-sto--diatheke-get-modules ()
+  "Return list of Sword modules from diatheke. The list is an alist
+where the key is the module category and the value is an alist where
+the key is the module abbreviation and the value is the corresponding
+string description."
+  (let ((modules-by-category nil)
+	(module-category nil))
+    (let ((abbrevs-descriptions nil))
+      (cl-loop for line in (s-lines (with-temp-buffer
+                                      (call-process "diatheke" nil '(t nil) nil
+                                                    "-b" "system" "-k" "modulelist")
+                                      (buffer-string)))
+	       when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
+				      ":"
+				      string-end)
+				  line)
+	       do (if module-category
+		      (progn
+			(push (list module-category abbrevs-descriptions) modules-by-category)
+			(setf module-category nil))
+		    (setf module-category (match-string 1 line)))
+               when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
+				      " : "
+				      (group-n 2 (zero-or-more anything)))
+				  line)
+	       do (push (cons (match-string 1 line)
+			      (match-string 2 line))
+			abbrevs-descriptions)))
+    modules-by-category))
+
 
 (defun dtk-sto--diatheke-parse-text (text &optional &key keep-newlines)
   "Parse TEXT line-by-line, returning list of verse plists.
@@ -604,7 +635,7 @@ Example:
   (cl-loop with result
            with new-verse
            for line in (s-lines text)
-           for parsed = (sword-to-org--diatheke-parse-line line)
+           for parsed = (dtk-sto--diatheke-parse-line line)
            if parsed
            do (progn
                 (push new-verse result)
@@ -630,7 +661,7 @@ Plist is in format (:book \"Genesis\" :chapter 1 :verse 1
 For a complete example, see how
 `sword-to-org--diatheke-parse-text' calls this function."
   (if (s-present? line)
-      (when (string-match sword-to-org--diatheke-parse-line-regexp line)
+      (when (string-match dtk-sto--diatheke-parse-line-regexp line)
         (let ((book (match-string 1 line))
               (chapter (string-to-number (match-string 2 line)))
               (verse (string-to-number (match-string 3 line)))
