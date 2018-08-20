@@ -608,7 +608,8 @@ string description."
 	       do (if module-category
 		      (progn
 			(push (list module-category abbrevs-descriptions) modules-by-category)
-			(setf module-category nil))
+			(setf module-category nil)
+			(setf abbrevs-descriptions nil))
 		    (setf module-category (match-string 1 line)))
                when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
 				      " : "
