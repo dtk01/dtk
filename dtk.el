@@ -19,6 +19,7 @@
 (require 'cl-lib)
 (require 'dash)
 (require 'seq)
+(require 'subr-x)
 
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
@@ -115,8 +116,7 @@
   (while (and (not (and
 		    (>= (length (elt lines 0))
 			4)
-		    (string= (seq-subseq (dtk-string-trim-whitespace
-					  (elt lines 0))
+		    (string= (seq-subseq (string-trim (elt lines 0))
 					 0 4)
 			     "see ")))
 	      ;; See note below regarding end of entire diatheke response
@@ -1070,17 +1070,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (let ((char-code (char-after (or point (point)))))
     (and (>= char-code 48)
 	 (<= char-code 57))))
-
-;; several emacs libraries contain a trim function (e.g., org-trim slime-trim-whitespace bbdb-string-trim)
-
-;; modified bbdb-string-trim
-(defun dtk-string-trim-whitespace (string)
-  "Lose leading and trailing whitespace in string STRING."
-  (if (string-match "\\`[ \t\n]+" string)
-      (setq string (substring string (match-end 0))))
-  (if (string-match "[ \t\n]+\\'" string)
-      (setq string (substring string 0 (match-beginning 0))))
-  string)
 
 ;;;
 ;;; establish defaults (relying on dtk code)
