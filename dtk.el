@@ -4,7 +4,7 @@
 
 ;; Author: David Thompson
 ;; Keywords: hypermedia
-;; Package-Requires: ((emacs "24") (seq "1.9"))
+;; Package-Requires: ((emacs "24") cl-lib dash (seq "1.9"))
 ;; Version: 0.2
 ;; URL: https://github.com/dtk01/dtk.el
 
@@ -16,6 +16,9 @@
 ;; To browse to a particular text, use `dtk`.
 
 ;;; Code:
+(require 'cl-lib)
+(require 'dash)
+(require 'seq)
 
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
