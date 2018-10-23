@@ -144,19 +144,19 @@
   "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
   (interactive)
   (dtk-to-start-of-full-citation)
-  (let ((bk-ch-vs (dtk-parse-citation-at-point)))
-    (dtk-go-to (elt bk-ch-vs 0)
-	       (elt bk-ch-vs 1)
-	       (elt bk-ch-vs 2))))
+  (let ((book-chapter-verse (dtk-parse-citation-at-point)))
+    (dtk-go-to (elt book-chapter-verse 0)
+	       (elt book-chapter-verse 1)
+	       (elt book-chapter-verse 2))))
 
-(defun dtk-go-to (&optional bk ch vs)
-  "Facilitate the selection of one or more verses via book (BK), chapter number (CH), and verse number (VS). If BK is NIL, query user to determine value to use for BK, CH, and VS. Return NIL if specified module is not available."
+(defun dtk-go-to (&optional book chapter verse)
+  "Facilitate the selection of one or more verses via book (BOOK), chapter number (CHAPTER), and verse number (VERSE). If BOOK is NIL, query user to determine value to use for BOOK, CHAPTER, and VERSE. Return NIL if specified module is not available."
   (interactive)
   (if (dtk-module-available-p dtk-module)
       ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
       (if (or (dtk-bible-module-available-p dtk-module)
 	      (dtk-commentary-module-available-p dtk-module))
-	  (dtk-bible bk ch vs)
+	  (dtk-bible book chapter verse)
 	(dtk-other))
     (progn
       (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
@@ -165,47 +165,47 @@
 	       (dtk-module-names dtk-module-category))
       nil)))
 
-(defun dtk-bible (&optional bk ch vs)
-  "BK is a string. CH is an integer. VS is an integer. If BK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse."
+(defun dtk-bible (&optional book chapter verse)
+  "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If BOOK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse."
   (if (not (dtk-biblical-texts))
       (warn "One or more Biblical texts must be installed first")
-    (let ((book (or bk
+    (let ((book (or book
 		    (minibuffer-with-setup-hook 'minibuffer-complete
 		      (let ((completion-ignore-case t))
 			(completing-read "Book: "
 					 dtk-books))))))
-      (let* ((ch (if bk
-		     (if ch
-			 (number-to-string ch)
-		       "")
-		   (read-from-minibuffer "Ch: ")))
-	     (vs (if bk
-		     (if vs
-			 (number-to-string vs)
-		       "")
-		   (read-from-minibuffer "Vs: "))))
-	(let ((ch-vs (if (not (dtk-empty-sequence-p ch))
-			 (if vs
-			     (concat ch ":" vs)
-			   ch)
-		       ""))
+      (let* ((chapter (if book
+			  (if chapter
+			      (number-to-string chapter)
+			    "")
+			(read-from-minibuffer "Chapter: ")))
+	     (verse (if book
+			(if verse
+			    (number-to-string verse)
+			  "")
+		      (read-from-minibuffer "Verse: "))))
+	(let ((chapter-verse (if (not (dtk-empty-sequence-p chapter))
+				 (if verse
+				     (concat chapter ":" verse)
+				   chapter)
+			       ""))
 	      (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
 	  ;; if dtk buffer is already established, just move point to it
 	  (switch-to-buffer-other-window dtk-buffer-name)
 	  (dtk-mode)
 	  (setq word-wrap dtk-word-wrap)
 	  (let ((start-point (point)))
-	    (dtk-bible--insert-using-diatheke book ch-vs)
+	    (dtk-bible--insert-using-diatheke book chapter-verse)
 	    (let ((insert-end (point)))
 	      (if dtk-compact-view-p
 		  (dtk-compact-region--sto start-point insert-end))
 	      ;; Remove dictionary support until this is thought through.
 	      (if (not dtk-show-dict-numbers)
-	      	    (while (dtk-handle-next-dict-number-in-buffer start-point)
-	      	      t)))))))))
+	      	  (while (dtk-handle-next-dict-number-in-buffer start-point)
+	      	    t)))))))))
 
-(defun dtk-bible--insert-using-diatheke (book ch-vs)
-  "Insert content specified by BOOK and CH-VS into the current buffer."
+(defun dtk-bible--insert-using-diatheke (book chapter-verse)
+  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer."
   (if (executable-find "diatheke")
       (progn
 	;; sanity check
@@ -216,7 +216,7 @@
 			  t     ; redisplay buffer as output is inserted
 			  ;; arguments: -b KJV k John
 			  "-o" "n"
-			  "-b" dtk-module "-k" book ch-vs)
+			  "-b" dtk-module "-k" book chapter-verse)
 	    ;; diatheke outputs verses and then outputs
 	    ;; - a single line with the last verse w/o reference followed by
 	    ;; - a single line with the module followed by
@@ -430,18 +430,18 @@
     (delete-region start-point end-point)
     (dtk-insert-verses verse-plists)))
 
-(defun dtk-verse-inserter (bk ch vs text)
-  "Insert a verse associated book BK, chapter CH, verse number VS, and text TEXT."
-  (when bk
-    (insert bk)
+(defun dtk-verse-inserter (book ch verse text)
+  "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT."
+  (when book
+    (insert book)
     (insert-char 32))
   (when ch
-    (insert (int-to-string ch))
-    (if vs
+    (insert (int-to-string chapter))
+    (if verse
 	(insert-char 58)
       (insert-char 32)))
-  (when vs
-    (insert (int-to-string vs))
+  (when verse
+    (insert (int-to-string verse))
     (insert-char 32))
   (when text
     (insert text)))
@@ -531,9 +531,9 @@
   (let ((start-point (point)))
     (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
     (beginning-of-line)
-    (let ((bk-ch-vs (dtk-parse-citation-at-point)))
+    (let ((book-chapter-verse (dtk-parse-citation-at-point)))
       (goto-char start-point)
-      (= (elt bk-ch-vs 2)		; verse number
+      (= (elt book-chapter-verse 2)		; verse number
 	 1))))
 
 (defun dtk-preview-citation ()
