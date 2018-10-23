@@ -433,16 +433,12 @@
 (defun dtk-verse-inserter (book ch verse text)
   "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT."
   (when book
-    (insert book)
-    (insert-char 32))
+    (insert book #x20))
   (when ch
-    (insert (int-to-string chapter))
-    (if verse
-	(insert-char 58)
-      (insert-char 32)))
+    (insert (int-to-string chapter)
+	    (if verse #x3a #x20)))
   (when verse
-    (insert (int-to-string verse))
-    (insert-char 32))
+    (insert (int-to-string verse) #x20))
   (when text
     (insert text)))
 
@@ -461,12 +457,12 @@
        do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
 	    (if (equal chapter this-chapter)
 		(progn
-		  (unless (= (char-before) 32)
-		    (insert-char 32))
+		  (unless (= (char-before) #x20)
+		    (insert #x20))
 		  (dtk-verse-inserter nil nil verse text))
 	      ;; new chapter
 	      (progn
-		(insert-char 10) (insert-char 10)
+		(insert #xa #xa)
 		(dtk-verse-inserter book chapter verse text)
 		(setf this-chapter chapter))))))))
  
@@ -544,7 +540,7 @@
     ;; (move-point-to-end-of-dtk-buffer)
     (goto-char (point-max))
     ;; (add-vertical-line-at-end-of-dtk-buffer)
-    (insert-char 10))
+    (insert #xa))
   ;; (back-to-point-in-search/current-buffer)
   (dtk-follow))
 
@@ -559,8 +555,7 @@
     (if (looking-at "[ \t]*$")		; (dtk-rest-of-line-blank-p)
 	(progn
 	  (kill-line)
-	  (insert-char ?\u0020  	; space (ascii 32)
-		       gap)))))
+	  (insert #x20 gap)))))
 
 (defun dtk-to-start-of-full-citation ()
   "If point is within a full citation, move the point to the start of the full citation."
@@ -755,13 +750,8 @@ For a complete example, see how
   (switch-to-buffer dtk-dict-buffer-name) ;(dtk-switch-to-dict-buffer)
   (dtk-dict-mode)
   ;; insert dtk-dict-content
-  (insert dtk-dict-word)
-  (insert-char 10)
-  (insert dtk-dict-def)
-  (insert-char 10)
-  (mapc #'(lambda (cr)
-	    (insert cr)
-	    (insert-char 10))
+  (insert dtk-dict-word #xa dtk-dict-def #xa)
+  (mapc #'(lambda (cr) (insert cr #xa))
 	dtk-dict-crossrefs))
 
 (defun dtk-show-dict-entry ()
