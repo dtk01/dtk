@@ -17,7 +17,9 @@
 
 ;;; Code:
 
-(defvar dtk-books nil)
+(defvar dtk-books nil
+  "List of strings representing books of the Bible.")
+
 (setq dtk-books
       '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
 	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians"
@@ -26,7 +28,8 @@
 	"Revelation of John" ;"Revelations"
 	))
 
-(defvar dtk-books-regexp nil)
+(defvar dtk-books-regexp nil
+  "Regular expression aiming to match a member of DTK-BOOKS.")
 (setq dtk-books-regexp
       (let ((raw-regexp ""))
 	(mapc #'(lambda (book)
@@ -35,11 +38,14 @@
 	      dtk-books)
 	(substring raw-regexp 0 (- (length raw-regexp) 2))))
 
-(defvar dtk-buffer-name "*dtk*")
+(defvar dtk-buffer-name "*dtk*"
+  "The name of the default buffer used by dtk for displaying the text of interest.")
 
-(defvar dtk-dict-buffer-name "*dtk-dict*")
+(defvar dtk-dict-buffer-name "*dtk-dict*"
+  "The name of the default buffer used by dtk for handling dictionary entries and references.")
 
-(defvar dtk-search-buffer-name "*dtk-search*")
+(defvar dtk-search-buffer-name "*dtk-search*"
+  "The name of the default buffer used by dtk for handling searches.")
 
 (defvar dtk-compact-view-p t
   "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
@@ -220,6 +226,7 @@
     (message (concat "diatheke not found found; please verify diatheke is installed"))))
 
 (defun dtk-other ()
+  "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
   (error "Unsupported"))
 
 ;;;###autoload
@@ -239,15 +246,17 @@
 ;;; dtk modules/books
 ;;;
 
-;; MODULE: a string, e.g., "KJV"
 (defun dtk-bible-module-available-p (module)
-  (dtk-module-available-p dtk-module "Biblical Texts"))
+  "Indicate whether the module MODULE is available. MODULE is a string."
+  (dtk-module-available-p module "Biblical Texts"))
 
 (defun dtk-biblical-texts ()
+  "Return a list of module names associated with the 'Biblical Texts' category."
   (dtk-modules-in-category "Biblical Texts"))
 
 (defun dtk-commentary-module-available-p (module)
-  (dtk-module-available-p dtk-module "Commentaries"))
+  "Return a list of module names associated with the 'Commentaries' category."
+  (dtk-module-available-p module "Commentaries"))
 
 (defun dtk-module-available-p (module-name &optional module-category)
   "Test whether the module specified by MODULE-NAME is locally available. MODULE-CATEGORY is either NIL or a string such as 'Biblical Texts' or 'Commentaries'. If NIL, test across all modules (don't limit by module category)."
@@ -293,6 +302,7 @@
     modules-by-category))
 
 (defun dtk-modules-in-category (category)
+  "Return a list of module names."
   (let ((biblical-text-modules
 	 (cdr (dtk-module-category category))))
     (mapcar
@@ -330,6 +340,7 @@
 ;;; dtk buffers
 ;;; 
 (defun dtk-buffer-exists-p ()
+  "Return an indication of whether the default dtk buffer exists."
   (get-buffer dtk-buffer-name))
 
 (defun dtk-clear-dtk-buffer ()
@@ -346,9 +357,11 @@
 		   (progn (goto-char (point-max)) (point)))))
 
 (defun dtk-ensure-dtk-buffer-exists ()
+  "Ensure the default dtk buffer exists."
   (get-buffer-create dtk-buffer-name))
 
 (defun dtk-ensure-search-buffer-exists ()
+  "Ensure the default dtk buffer for searches exists."
   (get-buffer-create dtk-search-buffer-name))
 
 (defun dtk-switch-to-dtk-buffer ()
@@ -356,13 +369,15 @@
   (switch-to-buffer dtk-buffer-name))
 
 (defun dtk-switch-to-search-buffer ()
+  "Switch to the dtk search buffer using SWITCH-TO-BUFFER."
   (switch-to-buffer dtk-search-buffer-name))
 
 ;;;
 ;;; interact with dtk buffers
 ;;;
 (defvar dtk-verse-raw-citation-verse-number-regexp
-  ":[[:digit:]]+:")
+  ":[[:digit:]]+:"
+  "A regular expression used to match verse number(s).")
 
 ;; put point directly before number
 (defun dtk-back-to-verse-full-citation-verse-number ()
@@ -416,6 +431,7 @@
     (dtk-insert-verses verse-plists)))
 
 (defun dtk-verse-inserter (bk ch vs text)
+  "Insert a verse associated book BK, chapter CH, verse number VS, and text TEXT."
   (when bk
     (insert bk)
     (insert-char 32))
@@ -455,6 +471,7 @@
 		(setf this-chapter chapter))))))))
  
 (defun dtk-compact-preceding-citation ()
+  "Search for the preceding citation and make it concise."
   (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
   ;; put point on top of first numeral of verse
   (forward-char 1)
@@ -729,6 +746,7 @@ For a complete example, see how
     dtk-dict-overlay))
 
 (defun dtk-dict-show-current-dict ()
+  "Show the current dictionary entry."
   (get-buffer-create dtk-dict-buffer-name) ;(dtk-ensure-dict-buffer-exists)
   ;;(dtk-clear-dict-buffer)
   (with-current-buffer dtk-dict-buffer-name
@@ -779,10 +797,12 @@ For a complete example, see how
 		     dtk-books ; (butlast dtk-books 1)
 		     "\\|")
 	  ;(car (last dtk-books))
-	  "\\)"))
+	  "\\)")
+  "Facilitate font lock in dtk major mode for books in DTK-BOOKS.")
 
 ;; these could use some TLC/refinement
-(defvar dtk-font-lock-keywords nil)
+(defvar dtk-font-lock-keywords nil
+  "List of font lock keywords for dtk major mode.")
 (setq dtk-font-lock-keywords
       (list
        ;; book names
@@ -835,6 +855,7 @@ For a complete example, see how
 ;;   "Major mode keymap for `dtk-mode'.")
 
 (defun dtk-make-overlay-verse-number (beg end)
+  "Make an overlay for the verse number beginning at point BEG and ending at point END."
   (let ((ov (make-overlay beg end
 			  (get-buffer dtk-buffer-name)
 			  t t)))
@@ -875,6 +896,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 (define-key dtk-mode-map "x" 'dtk-follow)
 
 (defun dtk-to-verse-number-font (beg end)
+  "Make an overlay for the verse number beginning at point BEG and ending at point END. Modify the text properties of the verse number to enhance readability."
   (with-current-buffer dtk-buffer-name
     (dtk-make-overlay-verse-number beg end)
     (add-text-properties
@@ -903,6 +925,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;; navigating (by book, chapter, and verse)
 ;;;
 (defun dtk-at-verse-citation? ()
+  "Return a true value if point is at a verse citation."
   ;; could be at a compact citation or at a full citation (e.g., 'John 1:1')
 
   ;; if at a numeral character, assume at a verse or chapter number
@@ -910,6 +933,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
       (dtk-at-verse-full-citation?)))
 
 (defun dtk-at-verse-full-citation? ()
+  "Return a true value if point is at a full verse citation."
   ;; could be at a verse number or at a full citation (e.g., 'John 1:1')
   (cond ((dtk-at-verse-full-citation-chapter?)
 	 :chapter)
@@ -921,20 +945,24 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 	 :space-or-book)))
 
 (defun dtk-at-verse-full-citation-colon? ()
+  "Return a true value if point is at the colon character in a full verse citation."
   ;; if at a colon, is it between two numerals?
   (and (= 58 (char-after (point)))	; colon character?
        (dtk-number-at-point (1+ (point)))
        (dtk-number-at-point (1- (point)))))
 
 (defun dtk-at-verse-full-citation-chapter? ()
+  "Return a true value if point appears to be at the numeral(s) indicating the chapter number in a full verse citation."
   (looking-at "[[:digit:]]+:[[:digit:]]"))
 
 (defun dtk-at-verse-full-citation-verse? ()
+  "Return a true value if point appears to be at the numeral(s) indicating the verse number in a full verse citation."
   (and (dtk-number-at-point (point))
        ;; might be at third digit of a verse...
        (looking-back "[[:digit:]]:[[:digit:]]?[[:digit:]]?" 5)))
 
 (defun dtk-at-verse-full-citation-space-or-book? ()
+  "Return a true value if point appears to be at the space preceding a full verse citation or at the start of a full verse citation."
   (or (and (= 32 (char-after (point)))
 	   (or
 	    ;; if at a space, ask if it precedes ch:v
@@ -1034,6 +1062,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 	  (<= char-code 122)))))
 
 (defun dtk-empty-sequence-p (x)
+  "Return a true value if X is NIL a sequence of length 0."
   (or (not x)
       (= 0 (length x))))
 
