@@ -17,26 +17,23 @@
 
 ;;; Code:
 
-(defvar dtk-books nil
+(defconst dtk-books
+  '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
+    "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians"
+    "Galatians" ; "Galations"
+    "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
+    "Revelation of John" ;"Revelations"
+    )
   "List of strings representing books of the Bible.")
 
-(setq dtk-books
-      '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
-	"Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians"
-	"Galatians" ; "Galations"
-	"Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
-	"Revelation of John" ;"Revelations"
-	))
-
-(defvar dtk-books-regexp nil
+(defconst dtk-books-regexp
+  (let ((raw-regexp ""))
+    (mapc #'(lambda (book)
+	      (setq raw-regexp
+		    (concat raw-regexp "\\(" book "\\)\\|")))
+	  dtk-books)
+    (substring raw-regexp 0 (- (length raw-regexp) 2)))
   "Regular expression aiming to match a member of DTK-BOOKS.")
-(setq dtk-books-regexp
-      (let ((raw-regexp ""))
-	(mapc #'(lambda (book)
-		  (setq raw-regexp
-			(concat raw-regexp "\\(" book "\\)\\|")))
-	      dtk-books)
-	(substring raw-regexp 0 (- (length raw-regexp) 2))))
 
 (defvar dtk-buffer-name "*dtk*"
   "The name of the default buffer used by dtk for displaying the text of interest.")
@@ -801,22 +798,21 @@ For a complete example, see how
   "Facilitate font lock in dtk major mode for books in DTK-BOOKS.")
 
 ;; these could use some TLC/refinement
-(defvar dtk-font-lock-keywords nil
+(defconst dtk-font-lock-keywords
+  (list
+   ;; book names
+   (cons dtk-books-font-lock-variable-name-face-string
+	 ;;(find-face 'dtk-full-book)
+	 font-lock-variable-name-face  ; Foreground: LightGoldenrod
+	 )
+   ;; chapter and verse numbers
+   (cons "\\([0-9]*\\)"
+	 ;;(find-face 'dtk-full-verse-number)
+	 font-lock-constant-face	; Foreground: Aquamarine
+	 )
+   ;; translation/source
+   (list dtk-module))
   "List of font lock keywords for dtk major mode.")
-(setq dtk-font-lock-keywords
-      (list
-       ;; book names
-       (cons dtk-books-font-lock-variable-name-face-string
-	     ;;(find-face 'dtk-full-book)
-	     font-lock-variable-name-face  ; Foreground: LightGoldenrod
-	     )
-       ;; chapter and verse numbers
-       (cons "\\([0-9]*\\)"
-	     ;;(find-face 'dtk-full-verse-number)
-	     font-lock-constant-face	; Foreground: Aquamarine
-	     )
-       ;; translation/source
-       (list dtk-module)))
 
 (defface dtk-full-book
   '((t ()))
