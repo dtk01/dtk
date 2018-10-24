@@ -808,29 +808,19 @@ For a complete example, see how
   "List of font lock keywords for dtk major mode.")
 
 (defface dtk-full-book
-  '((t ()))
+  '((t (:background "gray50" :foreground "red" :height 1.2)))
   "Face for book component of a full citation."
   :group 'dtk-faces)
-(set-face-background 'dtk-full-book "gray50")
-(set-face-foreground 'dtk-full-book "red")
-(set-face-attribute 'dtk-full-book nil
-		    :height 1.2)
 
 (defface dtk-full-verse-number
-  '((t ()))
+  '((t (:background nil :height 1.2)))
   "Face for marking verse number component of a full citation."
   :group 'dtk-faces)
-(set-face-background 'dtk-full-verse-number nil)
-(set-face-attribute 'dtk-full-verse-number nil
-		    :height 1.2)
 
 (defface dtk-compact-verse-number
-  '((t ()))
+  '((t (:background nil :height 0.8)))
   "Face for marking verse number."
   :group 'dtk-faces)
-(set-face-background 'dtk-compact-verse-number nil)
-(set-face-attribute 'dtk-compact-verse-number nil
-		    :height 0.8)
 
 ;;
 ;; misc dtk mode stuff
