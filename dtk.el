@@ -4,7 +4,7 @@
 
 ;; Author: David Thompson
 ;; Keywords: hypermedia
-;; Package-Requires: ((emacs "24") cl-lib dash (seq "1.9"))
+;; Package-Requires: ((emacs "24.4") (cl-lib "0.6.1") (dash "2.12.0") (seq "1.9"))
 ;; Version: 0.2
 ;; URL: https://github.com/dtk01/dtk.el
 
@@ -255,7 +255,7 @@
   (dtk-modules-in-category "Biblical Texts"))
 
 (defun dtk-commentary-module-available-p (module)
-  "Return a list of module names associated with the 'Commentaries' category."
+  "Return an indication of whether module MODULE is both available and associated with the 'Commentaries' category."
   (dtk-module-available-p module "Commentaries"))
 
 (defun dtk-module-available-p (module-name &optional module-category)
@@ -302,7 +302,7 @@
     modules-by-category))
 
 (defun dtk-modules-in-category (category)
-  "Return a list of module names."
+  "Return a list of module names associated with module category CATEGORY."
   (let ((biblical-text-modules
 	 (cdr (dtk-module-category category))))
     (mapcar
@@ -361,7 +361,7 @@
   (get-buffer-create dtk-buffer-name))
 
 (defun dtk-ensure-search-buffer-exists ()
-  "Ensure the default dtk buffer for searches exists."
+  "Ensure the default dtk buffer exists for conducting a search."
   (get-buffer-create dtk-search-buffer-name))
 
 (defun dtk-switch-to-dtk-buffer ()
@@ -602,10 +602,7 @@
   "Regexp to parse each line of output from `diatheke'.")
 
 (defun dtk-sto--diatheke-get-modules ()
-  "Return list of Sword modules from diatheke. The list is an alist
-where the key is the module category and the value is an alist where
-the key is the module abbreviation and the value is the corresponding
-string description."
+  "Return a list of Sword modules from diatheke. The list is an alist where the key is the module category and the value is an alist where the key is the module abbreviation and the value is the corresponding string description."
   (let ((modules-by-category nil)
 	(module-category nil))
     (let ((abbrevs-descriptions nil))
@@ -633,9 +630,9 @@ string description."
     modules-by-category))
 
 
-(defun dtk-sto--diatheke-parse-text (text &optional &key keep-newlines)
+(defun dtk-sto--diatheke-parse-text (text &optional keep-newlines-p)
   "Parse TEXT line-by-line, returning list of verse plists.
-When KEEP-NEWLINES is non-nil, keep blank lines in text.
+When KEEP-NEWLINES-P is non-nil, keep blank lines in text.
 
 Plists are in format (:book \"Genesis\" :chapter 1 :verse 1
                       :text \"In the beginning...\").
