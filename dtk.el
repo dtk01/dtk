@@ -327,10 +327,15 @@
 	 (minibuffer-with-setup-hook 'minibuffer-complete
 	   (let ((completion-ignore-case t))
 	     (completing-read "Module: "
-			      (dtk-module-names dtk-module-category))))))
-    (if (and module
-	     (not (string= module "")))
-	(setf dtk-module module))))
+			      (dtk-module-names dtk-module-category)
+			      nil
+			      t
+			      nil
+			      nil
+			      '(nil))))))
+    (if module
+	(setf dtk-module module)
+      (message "Module not selected"))))
 
 ;;;
 ;;; dtk buffers
