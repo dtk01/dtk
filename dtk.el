@@ -553,10 +553,9 @@
 (defun dtk-snug-text-to-citation ()
   "If the verse citation verse number is not succeeded by the verse text, bring the text of the next line onto the current line."
   (let ((gap 1))
-    (if (looking-at "[ \t]*$")		; (dtk-rest-of-line-blank-p)
-	(progn
-	  (kill-line)
-	  (insert #x20 gap)))))
+    (when (looking-at "[ \t]*$")		; (dtk-rest-of-line-blank-p)
+      (kill-line)
+      (insert #x20 gap))))
 
 (defun dtk-to-start-of-full-citation ()
   "If point is within a full citation, move the point to the start of the full citation."
