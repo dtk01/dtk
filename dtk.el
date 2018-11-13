@@ -32,12 +32,7 @@
   "List of strings representing books of the Bible.")
 
 (defconst dtk-books-regexp
-  (let ((raw-regexp ""))
-    (mapc #'(lambda (book)
-	      (setq raw-regexp
-		    (concat raw-regexp "\\(" book "\\)\\|")))
-	  dtk-books)
-    (substring raw-regexp 0 (- (length raw-regexp) 2)))
+  (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
 
 (defvar dtk-buffer-name "*dtk*"
