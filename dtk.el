@@ -169,24 +169,24 @@
   "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If BOOK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse."
   (if (not (dtk-biblical-texts))
       (warn "One or more Biblical texts must be installed first")
-    (let ((book (or book
-		    (minibuffer-with-setup-hook 'minibuffer-complete
-		      (let ((completion-ignore-case t))
-			(completing-read "Book: "
-					 dtk-books))))))
-      (let* ((chapter (if book
-			  (if chapter
-			      (number-to-string chapter)
-			    "")
-			(read-from-minibuffer "Chapter: ")))
-	     (verse (if book
-			(if verse
-			    (number-to-string verse)
-			  "")
-		      (read-from-minibuffer "Verse: "))))
-	(let ((chapter-verse (if (not (dtk-empty-sequence-p chapter))
-				 (if verse
-				     (concat chapter ":" verse)
+    (let ((final-book (or book
+			  (minibuffer-with-setup-hook 'minibuffer-complete
+			    (let ((completion-ignore-case t))
+			      (completing-read "Book: "
+					       dtk-books))))))
+      (let* ((final-chapter (if book
+				(if chapter
+				    (number-to-string chapter)
+				  "")
+			      (read-from-minibuffer "Chapter: ")))
+	     (final-verse (if book
+			      (if verse
+				  (number-to-string verse)
+				"")
+			    (read-from-minibuffer "Verse: "))))
+	(let ((chapter-verse (if (not (dtk-empty-sequence-p final-chapter))
+				 (if final-verse
+				     (concat final-chapter ":" final-verse)
 				   chapter)
 			       ""))
 	      (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
@@ -195,7 +195,7 @@
 	  (dtk-mode)
 	  (setq word-wrap dtk-word-wrap)
 	  (let ((start-point (point)))
-	    (dtk-bible--insert-using-diatheke book chapter-verse)
+	    (dtk-bible--insert-using-diatheke final-book chapter-verse)
 	    (let ((insert-end (point)))
 	      (if dtk-compact-view-p
 		  (dtk-compact-region--sto start-point insert-end))
@@ -654,7 +654,7 @@ Example:
                           (new-text (concat text
                                             (if (s-present? line)
                                                 line
-                                              (when keep-newlines "\n")))))
+                                              (when keep-newlines-p "\n")))))
                      (plist-put new-verse :text new-text))
            finally return (cdr (progn
                                  (push new-verse result)
