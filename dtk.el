@@ -546,7 +546,9 @@
 (defun dtk-quit ()
   "Quit."
   (interactive)
-  (kill-buffer dtk-buffer-name))
+  (when (member (buffer-name (current-buffer))
+		(list dtk-buffer-name dtk-dict-buffer-name dtk-search-buffer-name))
+    (kill-buffer nil)))
 
 (defun dtk-snug-text-to-citation ()
   "If the verse citation verse number is not succeeded by the verse text, bring the text of the next line onto the current line."
@@ -887,13 +889,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;;###autoload
 (define-derived-mode dtk-dict-mode dtk-mode "dtk-dict"
   "Major mode for interacting with dtk dict results.")
-
-(defun dtk-dict-quit ()
-  "Leave the *dtk-dict* buffer."
-  (interactive)
-  (kill-buffer dtk-dict-buffer-name))
-
-(define-key dtk-mode-map "q" 'dtk-dict-quit)
 
 ;;;
 ;;; navigating (by book, chapter, and verse)
