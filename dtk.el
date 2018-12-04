@@ -432,14 +432,22 @@
 (defun dtk-verse-inserter (book ch verse text)
   "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT."
   (when book
-    (insert book #x20))
+    (let ((book-start (point)))
+      (insert book #x20)
+      (set-text-properties book-start (point) (list 'book book))))
   (when ch
-    (insert (int-to-string chapter)
-	    (if verse #x3a #x20)))
+    (let ((chapter-start (point)))
+      (insert (int-to-string chapter)
+	      (if verse #x3a #x20))
+      (set-text-properties chapter-start (point) (list 'book book 'chapter chapter))))
   (when verse
-    (insert (int-to-string verse) #x20))
+    (let ((verse-start (point)))
+      (insert (int-to-string verse) #x20)
+      (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))))
   (when text
-    (insert text)))
+    (let ((text-start (point)))
+      (insert text)
+      (set-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse)))))
 
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
@@ -950,64 +958,60 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 	    (looking-at "\\(\\(I \\)\\|\\(II \\)\\)\\w+ [[:digit:]]+:[[:digit:]]")))))
 
 (defun dtk-backward-verse ()
-  "Move backward to the start of the previous verse."
+  "Move to the numeric component of the verse citation for the previous verse."
   (interactive)
-  (dtk-to-start-of-current-verse)
-  (search-backward-regexp "[0-9]"))
+  (dtk-previous-verse)
+  (dtk-to-start-of-current-verse))
+
+(defun dtk-previous-verse ()
+  "Move to the previous verse. No assurance is offered with respect to the exact location of point within the preceding verse after invoking DTK-PREVIOUS-VERSE."
+  (interactive)
+  ;; It is possible that point is currently at whitespace not
+  ;; associated with a verse; if so, move until the 'verse property is
+  ;; defined and treat that verse value as the current verse.
+  (dtk-back-until-verse-defined)
+  (dtk-previous-verse-change)
+  ;; As above, it's possible point is at a position where
+  ;; the 'verse property is not defined.
+  (dtk-back-until-verse-defined))
+
+(defun dtk-back-until-verse-defined ()
+  "If the verse text property is not defined at point, back up until at a position where the verse text property is defined."
+  (interactive)
+  (if (not (get-text-property (point) 'verse))
+      (goto-char
+       (1- (previous-single-property-change
+	    (if (eobp)
+		(point)
+	      (1+ (point)))
+	    'verse)))))
+
+(defun dtk-previous-verse-change ()
+  "Move to the point at which the 'verse text property assumes a different value (relative to the 'verse text property at the current point). Return the point at which the 'verse text property changed or, if the property does not change prior to the current point, return NIL."
+  (interactive)
+  (let ((verse-changes-at (previous-single-property-change (1+ (point)) 'verse)))
+    (when verse-changes-at
+      (goto-char (1- verse-changes-at)))
+    verse-changes-at))
 
 (defun dtk-forward-verse ()
   "Move to the numeric component of the verse citation for the next verse."
   (interactive)
-  ;; 1. check if at a citation, if so move downstream
-  ;; 2. move to next citation
-
-  ;; in the middle of a full citation?
-  ;; - performing this test first allows test for numeral later to specifically test for compact citation
-  (let ((at-full-citation-p (dtk-at-verse-full-citation?)))
-   (cond (at-full-citation-p
-	  ;; move to end of citation
-	  (cond ((member at-full-citation-p
-			 '(:chapter :colon :verse))
-		 (search-forward " "))
-		;; :space-or-book
-	     	((eq at-full-citation-p :space-or-book)
-		 (search-forward ":")
-		 (search-forward " "))))
-	 ;; if at a compact citation,
-	 ((dtk-number-at-point (point))
-	  (search-forward " "))
-	 ;; assume that if we're not at a citation, then we're in the middle of a verse
-	 (t
-	  nil)))
-  ;; move to next verse citation
-  (search-forward-regexp "[0-9]"))
+  (goto-char (next-single-property-change (point) 'verse))
+  ;; it is possible that whitespace is present not associated with a verse; if that's the case move forward until the 'verse property is defined
+  (if (not (get-text-property (point) 'text))
+      (goto-char (next-single-property-change (point) 'verse))))
 
 (defun dtk-to-start-of-current-verse ()
   "Move to the start (beginning of the citation) of the current verse."
   (interactive)
-  ;; in the middle of a full citation?
-  ;; - performing this test first allows test for numeral later to specifically test for compact citation
-  (let ((at-full-citation-p (dtk-at-verse-full-citation?)))
-   (cond (at-full-citation-p
-	  ;; move to start of citation
-	  ;; FIXME: this only guarantees move close to start, not to exact start
-	  (cond ((member at-full-citation-p
-			 '(:chapter :colon :verse))
-		 (search-backward " "))
-		;; do nothing for :space-or-book
-	     	(t nil)))
-	 ;; if at a compact citation,
-	 ((dtk-number-at-point (point))
-	  ;; back up to a character which isn't a numeral
-	  (search-backward-regexp "[^0-9]")
-	  ;; then forward to a numeral
-	  (search-forward-regexp "[0-9]")
-	  ;; put point on the numeral
-	  (backward-char))
-	 ;; assume that if we're not at a citation, then we're in the middle of a verse -> move back to verse number and then follow steps above
-	 (t
-	  (search-backward-regexp "[0-9]")
-	  (dtk-to-start-of-current-verse)))))
+  (let ((verse-changes-at (dtk-previous-verse-change)))
+    (cond (verse-changes-at
+	   (forward-char))
+	  ;; In less-than-ideal circumstances, VERSE-CHANGES-AT assumes a value of NIL when at the first verse. Ugly kludges include moving to start of buffer or searching back for the first numeric character encountered.
+	  (t
+	   (beginning-of-buffer)))))
+
 ;;;
 ;;; miscellany
 ;;;
