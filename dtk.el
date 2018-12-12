@@ -378,46 +378,6 @@
   ":[[:digit:]]+:"
   "A regular expression used to match verse number(s).")
 
-;; put point directly before number
-(defun dtk-back-to-verse-full-citation-verse-number ()
-  "Navigate back to the start of the verse."
-  (interactive)
-  (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp))
-
-(defun dtk-compact-region (&optional start-point end-point)
-  "Helper for DTK-BIBLE. START-POINT and END-POINT specify the region under consideration."
-  (interactive)
-  (let ((end-point (or end-point (point)))
-	(start-point (or start-point (region-beginning))))
-    (goto-char start-point)
-    ;; if succeeding line is blank, delete it
-    (delete-blank-lines)
-    ;; if we can't find verse number, no point in proceeding
-    (when (dtk-forward-to-verse-number-end)
-      ;; clean up ugly trailing colon
-      (delete-char -1)
-
-      ;; the above leaves the cursor on the space succeeding the colon
-      (while (and (< (point) end-point)
-		  (condition-case nil
-		      (dtk-forward-to-verse-number-end)
-		    (error nil)))
-	(cond ((dtk-preceding-citation-is-chapter-start-p)
-	       ;; clean up ugly trailing colon
-	       (delete-char -1))
-	      (t
-	       ;; sometimes diatheke inserts a newline after the verse number
-	       (dtk-snug-text-to-citation)
-	       (dtk-compact-preceding-citation)
-	       ;; if succeeding line is blank, delete it
-	       (delete-blank-lines)
-	       ;; what to do here? could...
-	       ;; 1. indent line
-	       ;; ;;(insert-char 32 2)
-	       ;; 2. compact further by merging w/preceding line
-	       (join-line)		; ? (delete-indentation)
-	       ))))))
-
 ;; This parses the specified text using sword-to-org parsing. It
 ;; assumes the text specified by START-POINT and END-POINT is raw
 ;; diatheke output. After parsing, that text is removed and replaced
@@ -473,30 +433,6 @@
 		(dtk-verse-inserter book chapter verse text)
 		(setf this-chapter chapter))))))))
  
-(defun dtk-compact-preceding-citation ()
-  "Search for the preceding citation and make it concise."
-  (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
-  ;; put point on top of first numeral of verse
-  (forward-char 1)
-  (delete-region (point) (line-beginning-position))
-  ;; point is at verse number
-  (let ((start (point)))
-    ;; verse number is preceded by space or start of line
-    (search-forward-regexp "[0-9]+")
-    ;; change verse number font appearance
-    (dtk-to-verse-number-font start (point)))
-  ;; delete colon succeeding verse number
-  (search-forward ":")
-  (delete-region (1- (point)) (point)))
-
-(defun dtk-forward-to-verse-number-end ()
-  "Look for the next occurence of a verse number in a verse citation. Return point or, if unable to find verse number, return NIL."
-  ;; search for :N: or :NN:
-  ;; FIXME: what about chapters with > 99 verses?
-  (search-forward-regexp dtk-verse-raw-citation-verse-number-regexp
-			 nil
-			 t))
-
 (defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
@@ -529,16 +465,6 @@
      (string-to-number
       (buffer-substring-no-properties colon1-position citation-end-position)))))
 
-(defun dtk-preceding-citation-is-chapter-start-p ()
-  "Return a true value if preceding citation corresponds to the start of a chapter."
-  (let ((start-point (point)))
-    (search-backward-regexp dtk-verse-raw-citation-verse-number-regexp)
-    (beginning-of-line)
-    (let ((book-chapter-verse (dtk-parse-citation-at-point)))
-      (goto-char start-point)
-      (= (elt book-chapter-verse 2)		; verse number
-	 1))))
-
 (defun dtk-preview-citation ()
   "Preview citation at point."
   (interactive)
@@ -557,13 +483,6 @@
   (when (member (buffer-name (current-buffer))
 		(list dtk-buffer-name dtk-dict-buffer-name dtk-search-buffer-name))
     (kill-buffer nil)))
-
-(defun dtk-snug-text-to-citation ()
-  "If the verse citation verse number is not succeeded by the verse text, bring the text of the next line onto the current line."
-  (let ((gap 1))
-    (when (looking-at "[ \t]*$")		; (dtk-rest-of-line-blank-p)
-      (kill-line)
-      (insert #x20 gap))))
 
 (defun dtk-to-start-of-full-citation ()
   "If point is within a full citation, move the point to the start of the full citation."
