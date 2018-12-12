@@ -580,7 +580,8 @@ Example:
            else do (let* ((text (plist-get new-verse :text))
                           (new-text (concat text
                                             (if (s-present? line)
-                                                line
+						;; If TEXT is already defined and LINE isn't empty, add a space to avoid directly concatenating two words. This assumes diatheke only breaks at puncutation or word boundaries.
+                                                (concat " " line)
                                               (when keep-newlines-p "\n")))))
                      (plist-put new-verse :text new-text))
            finally return (cdr (progn
