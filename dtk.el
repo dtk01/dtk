@@ -954,7 +954,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 	  (<= char-code 122)))))
 
 (defun dtk-empty-sequence-p (x)
-  "Return a true value if X is NIL a sequence of length 0."
+  "Return a true value if X is NIL or a sequence of length 0."
   (or (not x)
       (= 0 (length x))))
 
