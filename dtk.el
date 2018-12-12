@@ -199,7 +199,7 @@
 	      	    t)))))))))
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse)
-  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer."
+  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
   (if (executable-find "diatheke")
       (progn
 	;; sanity check
