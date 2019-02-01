@@ -504,7 +504,6 @@
 	       (search-backward " "))
 	      ((member full-citation-component
 		       '(:chapter :colon :verse))
-	       (message "memb")
 	       (search-backward " ")))
 	;; move to start of chapter name
 	(search-backward-regexp dtk-books-regexp)
