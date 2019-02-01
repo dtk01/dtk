@@ -1,6 +1,6 @@
 ;;; dtk.el --- access SWORD content via diatheke
 
-;; Copyright (C) 2017-2018 David Thompson
+;; Copyright (C) 2017-2019 David Thompson
 
 ;; Author: David Thompson
 ;; Keywords: hypermedia
