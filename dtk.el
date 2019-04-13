@@ -398,13 +398,13 @@
     (delete-region start-point end-point)
     (dtk-insert-verses verse-plists)))
 
-(defun dtk-verse-inserter (book ch verse text)
-  "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT."
-  (when book
+(defun dtk-verse-inserter (book ch verse text new-bk-p new-ch-p)
+  "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT. If this function is being invoked in the context of a change to a new book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P, respectively."
+  (when new-bk-p
     (let ((book-start (point)))
       (insert book #x20)
       (set-text-properties book-start (point) (list 'book book))))
-  (when ch
+  (when new-ch-p
     (let ((chapter-start (point)))
       (insert (int-to-string chapter)
 	      (if verse #x3a #x20))
@@ -424,7 +424,7 @@
     (let ((this-chapter nil))
       ;; handle first verse
       (-let (((&plist :book book :chapter chapter :verse verse :text text) (pop verse-plists)))
-	(dtk-verse-inserter book chapter verse text)
+	(dtk-verse-inserter book chapter verse text t nil)
 	(setf this-chapter chapter))
       ;; Format the remaining verses, anticipating changes in chapter
       ;; number. Assume that book will not change.
@@ -435,12 +435,12 @@
 		(progn
 		  (unless (= (char-before) #x20)
 		    (insert #x20))
-		  (dtk-verse-inserter nil nil verse text))
+		  (dtk-verse-inserter book chapter verse text nil nil))
 	      ;; new chapter
 	      (progn
 		(insert #xa #xa)
-		(dtk-verse-inserter book chapter verse text)
-		(setf this-chapter chapter))))))))
+		(setf this-chapter chapter)
+		(dtk-verse-inserter book chapter verse text nil t))))))))
  
 (defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
