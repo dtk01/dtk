@@ -150,7 +150,7 @@
       ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
       (if (or (dtk-bible-module-available-p dtk-module)
 	      (dtk-commentary-module-available-p dtk-module))
-	  (dtk-bible book chapter verse)
+	  (dtk-bible book chapter verse t)
 	(dtk-other))
     (progn
       (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
@@ -159,8 +159,9 @@
 	       (dtk-module-names dtk-module-category))
       nil)))
 
-(defun dtk-bible (&optional book chapter verse)
-  "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If BOOK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse."
+(defun dtk-bible (&optional book chapter verse dtk-buffer-p)
+  "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If BOOK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse. Insert into the dtk buffer if DTK-BUFFER-P is true."
+  (interactive)
   (if (not (dtk-biblical-texts))
       (warn "One or more Biblical texts must be installed first")
     (let ((final-book (or book
@@ -182,12 +183,13 @@
 				 (if final-verse
 				     (concat final-chapter ":" final-verse)
 				   chapter)
-			       ""))
-	      (dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-	  ;; if dtk buffer is already established, just move point to it
-	  (switch-to-buffer-other-window dtk-buffer-name)
-	  (dtk-mode)
-	  (setq word-wrap dtk-word-wrap)
+			       "")))
+	  (when dtk-buffer-p
+	    (dtk-ensure-dtk-buffer-exists)
+	    ;; if dtk buffer is already established, just move point to it
+	    (switch-to-buffer-other-window dtk-buffer-name)
+	    (dtk-mode)
+	    (setq word-wrap dtk-word-wrap))
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke final-book chapter-verse)
 	    (let ((insert-end (point)))
