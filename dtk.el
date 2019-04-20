@@ -426,7 +426,7 @@
     (let ((this-chapter nil))
       ;; handle first verse
       (-let (((&plist :book book :chapter chapter :verse verse :text text) (pop verse-plists)))
-	(dtk-verse-inserter book chapter verse text t nil)
+	(dtk-verse-inserter book chapter verse text t t)
 	(setf this-chapter chapter))
       ;; Format the remaining verses, anticipating changes in chapter
       ;; number. Assume that book will not change.
