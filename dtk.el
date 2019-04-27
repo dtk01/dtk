@@ -195,33 +195,37 @@
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
-	  (progn
-	    (call-process "diatheke" nil t
-			  t     ; redisplay buffer as output is inserted
-			  ;; arguments: -b KJV k John
-			  "-o" "n"
-			  "-b" dtk-module "-k" book chapter-verse)
-	    ;; Assume diatheke omits text of verse(s) and then omits
-	    ;; - zero or more empty lines followed by
-	    ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
-	    ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
-	    ;; - followed by a zero or more newlines
-
-	    ;; Search back and remove (<module name>)
-	    (let ((end-point (point)))
-	      (re-search-backward "^(.*)" nil t 1)
-	      (delete-region (point) end-point))
-	    ;; Search back and remove duplicate text of last verse and the preceding colon
-	    (let ((end-point (point)))
-	      (re-search-backward "^:" nil t 1)
-	      (delete-region (point) end-point))
-	    t)))
-    (message (concat "diatheke not found found; please verify diatheke is installed"))))
   (if (not (executable-find "diatheke"))
       (error "diatheke not found. Please verify diatheke is installed and in search path."))
   ;; sanity check
   (if (not dtk-module)
       (error "Define dtk-module ('m') first"))
+  (insert
+   (with-temp-buffer
+     (call-process "diatheke" nil t
+                   t     ; redisplay buffer as output is inserted
+                   ;; arguments: -b KJV k John
+                   "-o" "n"
+                   "-b" dtk-module "-k" book chapter-verse)
+     ;; Assume diatheke omits text of verse(s) and then omits
+     ;; - zero or more empty lines followed by
+     ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
+     ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
+     ;; - followed by a zero or more newlines
+
+     ;; Search back and remove (<module name>)
+     (let ((end-point (point)))
+       (re-search-backward "^(.*)" nil t 1)
+       (delete-region (point) end-point))
+     ;; Search back and remove duplicate text of last verse and the preceding colon
+     (let ((end-point (point)))
+       (re-search-backward "^:" nil t 1)
+       (delete-region (point) end-point))
+     ;; Return contents of the temporary buffer
+     (buffer-string)
+     ))
+  t)
+
 
 (defun dtk-other ()
   "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
