@@ -375,10 +375,6 @@
   "Ensure the default dtk buffer exists for conducting a search."
   (get-buffer-create dtk-search-buffer-name))
 
-(defun dtk-switch-to-dtk-buffer ()
-  "Switch to the dtk buffer using SWITCH-TO-BUFFER."
-  (switch-to-buffer dtk-buffer-name))
-
 (defun dtk-switch-to-search-buffer ()
   "Switch to the dtk search buffer using SWITCH-TO-BUFFER."
   (switch-to-buffer dtk-search-buffer-name))
