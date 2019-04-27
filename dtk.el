@@ -159,7 +159,7 @@
   "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If BOOK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse. Insert into the dtk buffer if DTK-BUFFER-P is true."
   (interactive)
   (if (not (dtk-biblical-texts))
-      (warn "One or more Biblical texts must be installed first")
+      (error "One or more Biblical texts must be installed first")
     (let ((final-book (or book
 			  (minibuffer-with-setup-hook 'minibuffer-complete
 			    (let ((completion-ignore-case t))
@@ -195,11 +195,6 @@
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
-  (if (executable-find "diatheke")
-      (progn
-	;; sanity check
-	(if (not dtk-module)
-	    (warn "Define dtk-module ('m') first")
 	  (progn
 	    (call-process "diatheke" nil t
 			  t     ; redisplay buffer as output is inserted
@@ -222,6 +217,11 @@
 	      (delete-region (point) end-point))
 	    t)))
     (message (concat "diatheke not found found; please verify diatheke is installed"))))
+  (if (not (executable-find "diatheke"))
+      (error "diatheke not found. Please verify diatheke is installed and in search path."))
+  ;; sanity check
+  (if (not dtk-module)
+      (error "Define dtk-module ('m') first"))
 
 (defun dtk-other ()
   "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
