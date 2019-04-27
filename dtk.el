@@ -360,7 +360,7 @@
 		   (progn (goto-char (point-max)) (point)))))
 
 (defun dtk-init ()
-  "Ensure the default dtk buffer exists and init."
+  "Initialize dtk buffer and switch to it."
   (when (not (dtk-buffer-exists-p))
     (get-buffer-create dtk-buffer-name)
     ;; Switch window only when we're not already in *dtk*
