@@ -185,10 +185,13 @@
 				   chapter)
 			       "")))
 	  (when dtk-buffer-p
+            ;; We need to insert text into *dtk* buffer. Make sure it exists
 	    (dtk-ensure-dtk-buffer-exists)
-	    ;; if dtk buffer is already established, just move point to it
-	    (switch-to-buffer-other-window dtk-buffer-name)
-	    (dtk-mode)
+            ;; Switch window only when we're not already in *dtk*
+            (when (not (string= (buffer-name) dtk-buffer-name))
+              (switch-to-buffer-other-window dtk-buffer-name))
+            ;; Init settings
+            (dtk-mode)
 	    (setq word-wrap dtk-word-wrap))
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke final-book chapter-verse)
