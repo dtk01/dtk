@@ -74,14 +74,10 @@
 (defun dtk ()
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
   (interactive)
-  (if (dtk-buffer-exists-p)
-      (switch-to-buffer-other-window dtk-buffer-name)
-    (if (dtk-biblical-texts)
-	(if (not (dtk-go-to))
-	    (let ((dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-	      (dtk-switch-to-dtk-buffer)
-	      (dtk-mode)))
-      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
+  (if (not (dtk-biblical-texts))
+      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts.")
+    (dtk-init)
+    (dtk-go-to)))
 
 (defun dtk-dictionary (key module)
   "Set DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
@@ -185,14 +181,8 @@
 				   chapter)
 			       "")))
 	  (when dtk-buffer-p
-            ;; We need to insert text into *dtk* buffer. Make sure it exists
-	    (dtk-ensure-dtk-buffer-exists)
-            ;; Switch window only when we're not already in *dtk*
-            (when (not (string= (buffer-name) dtk-buffer-name))
-              (switch-to-buffer-other-window dtk-buffer-name))
-            ;; Init settings
-            (dtk-mode)
-	    (setq word-wrap dtk-word-wrap))
+            (dtk-init)
+	    )
 	  (let ((start-point (point)))
 	    (dtk-bible--insert-using-diatheke final-book chapter-verse)
 	    (let ((insert-end (point)))
@@ -369,9 +359,17 @@
     (delete-region (progn (goto-char (point-min)) (point))
 		   (progn (goto-char (point-max)) (point)))))
 
-(defun dtk-ensure-dtk-buffer-exists ()
-  "Ensure the default dtk buffer exists."
-  (get-buffer-create dtk-buffer-name))
+(defun dtk-init ()
+  "Ensure the default dtk buffer exists and init."
+  (when (not (dtk-buffer-exists-p))
+    (get-buffer-create dtk-buffer-name)
+    ;; Switch window only when we're not already in *dtk*
+    (if (not (string= (buffer-name) dtk-buffer-name))
+        (switch-to-buffer-other-window dtk-buffer-name)
+      (switch-to-buffer dtk-buffer-name))
+    (dtk-mode)
+    (setq word-wrap dtk-word-wrap))
+  )
 
 (defun dtk-ensure-search-buffer-exists ()
   "Ensure the default dtk buffer exists for conducting a search."
