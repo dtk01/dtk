@@ -361,14 +361,12 @@ obtain book, chapter, and verse."
   "Clear the dtk buffer."
   (interactive)
   (with-current-buffer dtk-buffer-name
-    (delete-region (progn (goto-char (point-min)) (point))
-		   (progn (goto-char (point-max)) (point)))))
+    (delete-region (point-min) (point-max))))
 
 (defun dtk-clear-search-buffer ()
   "Clear the search buffer."
   (with-current-buffer dtk-search-buffer-name
-    (delete-region (progn (goto-char (point-min)) (point))
-		   (progn (goto-char (point-max)) (point)))))
+    (delete-region (point-min) (point-max))))
 
 (defun dtk-init ()
   "Initialize dtk buffer and switch to it."
