@@ -15,6 +15,11 @@
 
 ## Usage
 
+*Prerequisites*: Define variable `dtk-module-category` (default: `"Biblical
+Texts"`) and `dtk-module` (default: the first module returned by `diatheke`).
+You may set it interactively by calling `dtk-select-module-category` and
+`dtk-select-module`.
+
 <kbd>M-x</kbd> `dtk` will create a dedicated buffer `*dtk*` and prompt for
 completion of book, chapter and verse. Corresponding texts will be inserted to
 `*dtk*` upon completion. 
