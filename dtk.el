@@ -376,8 +376,7 @@ obtain book, chapter, and verse."
     (if (not (string= (buffer-name) dtk-buffer-name))
         (switch-to-buffer-other-window dtk-buffer-name)
       (switch-to-buffer dtk-buffer-name))
-    (dtk-mode)
-    (setq word-wrap dtk-word-wrap))
+    (dtk-mode))
   )
 
 (defun dtk-ensure-search-buffer-exists ()
@@ -789,19 +788,20 @@ For a complete example, see how
   "Major mode for displaying dtk text
 \\{dtk-mode-map}
 Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
-  ;(kill-all-local-variables)
-  ;(use-local-map dtk-mode-map)
-  ;(setq mode-name "dtk")
-  ;(setq major-mode 'dtk-mode)
-  ;(set-syntax-table text-mode-syntax-table)
-  ;(setq local-abbrev-table dtk-mode-abbrev-table)
+  ;;(kill-all-local-variables)
+  ;;(use-local-map dtk-mode-map)
+  ;;(setq mode-name "dtk")
+  ;;(setq major-mode 'dtk-mode)
+  ;;(set-syntax-table text-mode-syntax-table)
+  ;;(setq local-abbrev-table dtk-mode-abbrev-table)
   ;; indent with #\Tab
   ;;(setq indent-line-function 'dtk-indent-line)
   ;; syntax highlighting/font lock
   (setq font-lock-defaults '(dtk-font-lock-keywords))
   (make-local-variable 'paragraph-start)
   (make-local-variable 'paragraph-separate)
-  ;(run-hooks 'text-mode-hook 'dtk-mode-hook)
+  (setq word-wrap dtk-word-wrap)
+  ;;(run-hooks 'text-mode-hook 'dtk-mode-hook)
   )
 
 (define-key dtk-mode-map "c" 'dtk-clear-dtk-buffer)
