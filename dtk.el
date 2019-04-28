@@ -168,10 +168,9 @@
   (if (not (dtk-biblical-texts))
       (error "One or more Biblical texts must be installed first")
     (let ((final-book (or book
-			  (minibuffer-with-setup-hook 'minibuffer-complete
-			    (let ((completion-ignore-case t))
-			      (setq dtk--recent-book (completing-read "Book: "
-                                                                      dtk-books nil nil nil nil dtk--recent-book)))))))
+                          (let ((completion-ignore-case t))
+                            (setq dtk--recent-book
+                                  (completing-read "Book: " dtk-books nil nil nil nil dtk--recent-book))))))
       (let* ((final-chapter (if book
 				(if chapter
 				    (number-to-string chapter)
@@ -324,10 +323,9 @@
   "Prompt the user to select a module category."
   (interactive)
   (let ((module-category
-	 (minibuffer-with-setup-hook 'minibuffer-complete
-	   (let ((completion-ignore-case t))
-	     (completing-read "Module type: "
-			      (dtk-modulelist))))))
+         (let ((completion-ignore-case t))
+           (completing-read "Module type: "
+                            (dtk-modulelist)))))
     (if (and module-category
 	     (not (string= module-category "")))
 	(setf dtk-module-category module-category))))
@@ -337,15 +335,14 @@
   "Prompt the user to select a module."
   (interactive)
   (let ((module
-	 (minibuffer-with-setup-hook 'minibuffer-complete
-	   (let ((completion-ignore-case t))
-	     (completing-read "Module: "
-			      (dtk-module-names dtk-module-category)
-			      nil
-			      t
-			      nil
-			      nil
-			      '(nil))))))
+         (let ((completion-ignore-case t))
+           (completing-read "Module: "
+                            (dtk-module-names dtk-module-category)
+                            nil
+                            t
+                            nil
+                            nil
+                            '(nil)))))
     (if module
 	(setf dtk-module module)
       (message "Module not selected"))))
