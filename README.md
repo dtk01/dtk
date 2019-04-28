@@ -13,21 +13,34 @@
 
 2. Ensure that at least one text accessible as a diatheke module is installed. One way to do this is by using the 'module manager' of [Xiphos](http://xiphos.org/). A number of texts are also available in Debian as packages (e.g., `sword-text-kjv`).
 
+## Usage
 
-## Use
+<kbd>M-x</kbd> `dtk` will create a dedicated buffer `*dtk*` and prompt for
+completion of book, chapter and verse. Corresponding texts will be inserted to
+`*dtk*` upon completion. 
 
-Invoke `dtk` (<kbd>M-x</kbd> `dtk`) to read a portion of a text. Use `C-c h` to obtain a list of keybindings specific to `dtk-mode`. Some functions which may be of interest are described below.
+`*dtk*` buffer enables `dtk-mode` and provide below keybindings.
 
-<kbd>M-x</kbd> `dtk-clear-dtk-buffer`
-     - clear the dtk buffer 
+| Key   | Commands                     | Description                                                                    |
+|-------|------------------------------|--------------------------------------------------------------------------------|
+| g     | `dtk-go-to`                  | Prompt and insert new text                                                     |
+| f     | `dtk-forward-verse`          | Forward verse                                                                  |
+| b     | `dtk-backward-verse`         | Backward verse                                                                 |
+| c     | `dtk-clear-dtk-buffer`       | Clear dtk buffer                                                               |
+| M     | `dtk-select-module-category` | Select type of text (Bible text, Commentaries, Dictionaries..)                 |
+| m     | `dtk-select-module`          | Select module (Bible versions)                                                 |
+| s     | `dtk-search`                 | Search text                                                                    |
+| S     | `dtk-show-dict-entry`        | Show Strong's dictionary data for word at point                                |
+| q     | `dtk-quit`                   | Quit buffer                                                                    |
+| x     | `dtk-follow`                 | Insert the corresponding verse into dtk buffer if point is under full citation |
+| C-M-b | `dtk-backward-chapter`       | Move point to previous chapter                                                 |
+| C-M-f | `dtk-forward-chapter`        | Move point to next chapter                                                     |
 
-<kbd>M-x</kbd> `dtk-go-to`
-     - go to a specific location in a text
+To insert Biblical text directly in any buffer, use <mbd>M-x</kbd> `dtk-bible`. 
 
 ## Performing a dictionary lookup
 
 Some texts have dictionary references embedded in the texts. For these texts, dictionary lookups may be available. By default, <kbd>S</kbd> will, by invoking `dtk-show-dict-entry`, display the related dictionary entry, if that entry is available.
-
 
 ### Searching within a text
 
