@@ -54,6 +54,13 @@
 (defvar dtk-module-category nil
   "Module category last selected by the user.")
 
+(defvar dtk--recent-book nil
+  "Most recently used book when reading user's completion."
+  ;; Normally we read the same book during a short period of time, so save
+  ;; latest input as default. On the contrary, chapter and verses are short
+  ;; numeric input, so we skip them.
+  )
+
 ;;
 ;; dictionary
 ;;
@@ -163,8 +170,8 @@
     (let ((final-book (or book
 			  (minibuffer-with-setup-hook 'minibuffer-complete
 			    (let ((completion-ignore-case t))
-			      (completing-read "Book: "
-					       dtk-books))))))
+			      (setq dtk--recent-book (completing-read "Book: "
+                                                                      dtk-books nil nil nil nil dtk--recent-book)))))))
       (let* ((final-chapter (if book
 				(if chapter
 				    (number-to-string chapter)
