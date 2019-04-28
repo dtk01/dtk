@@ -22,6 +22,10 @@
 (require 'seq)
 (require 'subr-x)
 
+(defvar dtk-program "diatheke"
+  "Front-end to SWORD library. Only diatheke is supported at the moment."
+  )
+
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
     "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galatians" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
@@ -93,7 +97,7 @@
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
-  (process-lines "diatheke" "-b" module "-k" key))
+  (process-lines dtk-program "-b" module "-k" key))
 
 (defun dtk-dict-handle-raw-lines (lines module)
   "Helper function for DTK-DICTIONARY. Handles list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE."
@@ -201,14 +205,11 @@
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
-  (if (not (executable-find "diatheke"))
-      (error "diatheke not found. Please verify diatheke is installed and in search path."))
-  ;; sanity check
   (if (not dtk-module)
       (error "Define dtk-module ('m') first"))
   (insert
    (with-temp-buffer
-     (call-process "diatheke" nil t
+     (call-process dtk-program nil t
                    t     ; redisplay buffer as output is inserted
                    ;; arguments: -b KJV k John
                    "-o" "n"
@@ -246,7 +247,7 @@
     (dtk-clear-search-buffer)
     (dtk-switch-to-search-buffer)
     (dtk-search-mode)
-    (call-process "diatheke" nil
+    (call-process dtk-program nil
 		  search-buffer
 		  t "-b" dtk-module "-s" "phrase" "-k" word-or-phrase)))
 
@@ -293,7 +294,7 @@
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
   (let ((modulelist-strings
-	 (process-lines "diatheke" "-b" "system" "-k" "modulelist"))
+	 (process-lines dtk-program "-b" "system" "-k" "modulelist"))
 	(modules-by-category nil))
     ;; construct list with the form ((category1 module11 ...) ... (categoryN moduleN1 ...))
     (dolist (x modulelist-strings)
@@ -549,7 +550,7 @@
 	(module-category nil))
     (let ((abbrevs-descriptions nil))
       (cl-loop for line in (s-lines (with-temp-buffer
-                                      (call-process "diatheke" nil '(t nil) nil
+                                      (call-process dtk-program nil '(t nil) nil
                                                     "-b" "system" "-k" "modulelist")
                                       (buffer-string)))
 	       when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
