@@ -170,7 +170,7 @@
   "Query diatheke and insert text.
 With `C-u' prefix arg, change module temporarily.
 
-Text are inserted in place, unless DTK-BUFFER-P is true.
+Text is inserted in place, unless DTK-BUFFER-P is true.
 
 BOOK is a string. CHAPTER is an integer. VERSE is an integer. If
 BOOK is not specified, rely on interacting via the minibuffer to
