@@ -52,7 +52,7 @@
 (defvar dtk-search-buffer-name "*dtk-search*"
   "The name of the default buffer used by dtk for handling searches.")
 
-(defvar dtk-compact-view-p t
+(defvar dtk-compact-view t
   "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
 
 (defvar dtk-word-wrap t
@@ -232,7 +232,7 @@ obtain book, chapter, and verse."
        (let ((end-point (point)))
          (re-search-backward "^:" nil t 1)
          (delete-region (point) end-point))
-       (if dtk-compact-view-p
+       (if dtk-compact-view
            (dtk-compact-region--sto (point-min) (point-max)))
        ;; Remove dictionary support until this is thought through.
        (if (not dtk-show-dict-numbers)
