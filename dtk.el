@@ -1,7 +1,7 @@
 ;;; dtk.el --- access SWORD content via diatheke
-
+;;
 ;; Copyright (C) 2017-2019 David Thompson
-
+;;
 ;; Author: David Thompson
 ;; Keywords: hypermedia
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6.1") (dash "2.12.0") (seq "1.9") (s "1.9"))
@@ -9,13 +9,16 @@
 ;; URL: https://github.com/dtk01/dtk.el
 
 ;;; Commentary:
-
+;;
 ;; This package provides access to SWORD content via diatheke, facilitating
-;; reading a Biblical text, or other diatheke-accessible material, in Emacs.
-
-;; To browse to a particular text, use `dtk`.
+;; reading Biblical text or other diatheke-accessible material in Emacs.
+;;
+;; To browse a particular text in a dedicated buffer, use `dtk'. To insert text
+;; directly, use `dtk-bible'.
 
 ;;; Code:
+
+;; Dependencies
 (require 'cl-lib)
 (require 'dash)
 (require 's)
@@ -25,6 +28,9 @@
 (defvar dtk-program "diatheke"
   "Front-end to SWORD library. Only diatheke is supported at the moment."
   )
+
+
+;;; Constants
 
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
