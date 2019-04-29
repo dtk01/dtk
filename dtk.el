@@ -26,14 +26,14 @@
 (require 'seq)
 (require 'subr-x)
 
+;;;; Customization
 ;; User configurable variables:
 (defgroup dtk nil
-  "Read Biblical text and other SWORD resources through diatheke
-in Emacs."
+  "Read Biblical text and other SWORD resources through diatheke."
   :prefix "dtk-"
   :group 'convenience)
 
-;; General Settings
+;;;;; General Settings
 (defcustom dtk-program "diatheke"
   "Front-end to SWORD library.
 Only diatheke is supported at the moment."
@@ -60,15 +60,15 @@ thing made that was made."
   :type 'boolean)
 
 (defcustom dtk-buffer-name "*dtk*"
-  "The name of the default buffer used by dtk for displaying the text of interest.")
+  "Name of buffer for displaying text.")
 
 (defcustom dtk-dict-buffer-name "*dtk-dict*"
-  "The name of the default buffer used by dtk for handling dictionary entries and references.")
+  "Name of buffer for displaying dictionary entries and references.")
 
 (defcustom dtk-search-buffer-name "*dtk-search*"
-  "The name of the default buffer used by dtk for handling searches.")
+  "Name of buffer for displaying search results.")
 
-;; Biblical Text defaults
+;;;;; Biblical Text defaults
 ;; TODO: "module" is a more general term. Rename it properly.
 (defcustom dtk-module nil
   "Module currently in use.")
