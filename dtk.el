@@ -25,23 +25,38 @@
 (require 'seq)
 (require 'subr-x)
 
+;; User configurable variables:
+(defgroup dtk nil
+  "Read Biblical text and other SWORD resources through diatheke
+in Emacs."
+  :prefix "dtk-"
+  :group 'convenience)
+
+;; General Settings
 (defcustom dtk-program "diatheke"
-  "Front-end to SWORD library. Only diatheke is supported at the moment."
-  )
+  "Front-end to SWORD library.
+Only diatheke is supported at the moment."
+  :type 'string)
 
+(defcustom dtk-word-wrap t
+  "Non-nil means to use word-wrapping for continuation lines."
+  :type 'boolean)
 
-;;; Constants
+(defcustom dtk-compact-view t
+  "Show verses in compact view.
+If nil, display all verses as if they're retrieved independently, e.g:
 
-(defconst dtk-books
-  '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
-    "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galatians" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
-    "Revelation of John" ;"Revelations"
-    )
-  "List of strings representing books of the Bible.")
+John 1:1: In the beginning was the Word, and the Word was with God, and the Word was God.
+John 1:2: The same was in the beginning with God.
+John 1:3: All things were made by him; and without him was not any thing made that was made.
 
-(defconst dtk-books-regexp
-  (regexp-opt dtk-books)
-  "Regular expression aiming to match a member of DTK-BOOKS.")
+If non-nil, hide repeated \"chapter\" for all verses except the first one, e.g:
+
+John 1:1 In the beginning was the Word, and the Word was with
+God, and the Word was God. 2 The same was in the beginning with
+God. 3 All things were made by him; and without him was not any
+thing made that was made."
+  :type 'boolean)
 
 (defcustom dtk-buffer-name "*dtk*"
   "The name of the default buffer used by dtk for displaying the text of interest.")
@@ -52,28 +67,15 @@
 (defcustom dtk-search-buffer-name "*dtk-search*"
   "The name of the default buffer used by dtk for handling searches.")
 
-(defcustom dtk-compact-view t
-  "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
-
-(defcustom dtk-word-wrap t
-  "The value of this variable should satisfy the predicate booleanp. If its value is true, wrap continuation lines at word boundaries (space or tab character) nearest to right window edge.")
-
+;; Biblical Text defaults
+;; TODO: "module" is a more general term. Rename it properly.
 (defcustom dtk-module nil
   "Module currently in use.")
 
 (defcustom dtk-module-category nil
   "Module category last selected by the user.")
 
-(defcustom dtk--recent-book nil
-  "Most recently used book when reading user's completion."
-  ;; Normally we read the same book during a short period of time, so save
-  ;; latest input as default. On the contrary, chapter and verses are short
-  ;; numeric input, so we skip them.
-  )
-
-;;
-;; dictionary
-;;
+;; Dictionary settings
 (defcustom dtk-dict-crossrefs nil
   "Cross-references for the most recent dictionary lookup.")
 
@@ -82,6 +84,26 @@
 
 (defcustom dtk-dict-word nil
   "The word (raw string) for the most recent dictionary lookup.")
+
+;; Internal variables
+(defcustom dtk--recent-book nil
+  "Most recently used book when reading user's completion."
+  ;; Normally we read the same book during a short period of time, so save
+  ;; latest input as default. On the contrary, chapter and verses are short
+  ;; numeric input, so we skip them.
+  )
+
+;; Constants
+(defconst dtk-books
+  '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
+    "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galatians" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
+    "Revelation of John" ;"Revelations"
+    )
+  "List of strings representing books of the Bible.")
+
+(defconst dtk-books-regexp
+  (regexp-opt dtk-books)
+  "Regular expression aiming to match a member of DTK-BOOKS.")
 
 ;;
 ;; interact with diatheke
