@@ -178,7 +178,8 @@ obtain book, chapter, and verse."
   (interactive)
   (when (not (dtk-biblical-texts))
     (error "One or more Biblical texts must be installed first"))
-  (let* ((final-module  (or (if current-prefix-arg ;; Called with prefix argument
+  (let* ((completion-ignore-case t)
+         (final-module  (or (if current-prefix-arg ;; Called with prefix argument
                                 (completing-read "Module: " (dtk-module-names
                                                              dtk-module-category)
                                                  nil t nil nil '(nil)))
