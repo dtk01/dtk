@@ -25,7 +25,7 @@
 (require 'seq)
 (require 'subr-x)
 
-(defvar dtk-program "diatheke"
+(defcustom dtk-program "diatheke"
   "Front-end to SWORD library. Only diatheke is supported at the moment."
   )
 
@@ -43,28 +43,28 @@
   (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
 
-(defvar dtk-buffer-name "*dtk*"
+(defcustom dtk-buffer-name "*dtk*"
   "The name of the default buffer used by dtk for displaying the text of interest.")
 
-(defvar dtk-dict-buffer-name "*dtk-dict*"
+(defcustom dtk-dict-buffer-name "*dtk-dict*"
   "The name of the default buffer used by dtk for handling dictionary entries and references.")
 
-(defvar dtk-search-buffer-name "*dtk-search*"
+(defcustom dtk-search-buffer-name "*dtk-search*"
   "The name of the default buffer used by dtk for handling searches.")
 
-(defvar dtk-compact-view t
+(defcustom dtk-compact-view t
   "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
 
-(defvar dtk-word-wrap t
+(defcustom dtk-word-wrap t
   "The value of this variable should satisfy the predicate booleanp. If its value is true, wrap continuation lines at word boundaries (space or tab character) nearest to right window edge.")
 
-(defvar dtk-module nil
+(defcustom dtk-module nil
   "Module currently in use.")
 
-(defvar dtk-module-category nil
+(defcustom dtk-module-category nil
   "Module category last selected by the user.")
 
-(defvar dtk--recent-book nil
+(defcustom dtk--recent-book nil
   "Most recently used book when reading user's completion."
   ;; Normally we read the same book during a short period of time, so save
   ;; latest input as default. On the contrary, chapter and verses are short
@@ -74,13 +74,13 @@
 ;;
 ;; dictionary
 ;;
-(defvar dtk-dict-crossrefs nil
+(defcustom dtk-dict-crossrefs nil
   "Cross-references for the most recent dictionary lookup.")
 
-(defvar dtk-dict-def nil
+(defcustom dtk-dict-def nil
   "Definition and notes for the most recent dictionary lookup.")
 
-(defvar dtk-dict-word nil
+(defcustom dtk-dict-word nil
   "The word (raw string) for the most recent dictionary lookup.")
 
 ;;
@@ -397,7 +397,7 @@ obtain book, chapter, and verse."
 ;;;
 ;;; interact with dtk buffers
 ;;;
-(defvar dtk-verse-raw-citation-verse-number-regexp
+(defcustom dtk-verse-raw-citation-verse-number-regexp
   ":[[:digit:]]+:"
   "A regular expression used to match verse number(s).")
 
@@ -717,7 +717,7 @@ For a complete example, see how
 	  (dtk-dict-show-current-dict))
       (message "%s" "No dictionary data"))))
 
-(defvar dtk-show-dict-numbers nil
+(defcustom dtk-show-dict-numbers nil
   "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
 
 ;;
@@ -726,7 +726,7 @@ For a complete example, see how
 
 ;;
 ;; font lock
-(defvar dtk-books-font-lock-variable-name-face-string
+(defcustom dtk-books-font-lock-variable-name-face-string
   (concat "^\\("
 	  (mapconcat #'(lambda (book)
 			 book)
@@ -771,13 +771,13 @@ For a complete example, see how
 
 ;;
 ;; misc dtk mode stuff
-;; (defvar dtk-mode-abbrev-table nil
+;; (defcustom dtk-mode-abbrev-table nil
 ;;   "Abbrev table used while in dtk mode.")
 
 ;; place where users can add stuff
-;(defvar dtk-mode-hook nil)
+;(defcustom dtk-mode-hook nil)
 
-;; (defvar dtk-mode-map nil
+;; (defcustom dtk-mode-map nil
 ;;   "Major mode keymap for `dtk-mode'.")
 
 (defun dtk-make-overlay-verse-number (beg end)
