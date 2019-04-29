@@ -754,8 +754,7 @@ For a complete example, see how
 			 book)
 		     ;; treat last book differently
 		     dtk-books ; (butlast dtk-books 1)
-		     "\\|")
-	  ;(car (last dtk-books))
+		     "\\|")          
 	  "\\)")
   "Facilitate font lock in dtk major mode for books in DTK-BOOKS.")
 
@@ -791,17 +790,6 @@ For a complete example, see how
   "Face for marking verse number."
   :group 'dtk-faces)
 
-;;
-;; misc dtk mode stuff
-;; (defcustom dtk-mode-abbrev-table nil
-;;   "Abbrev table used while in dtk mode.")
-
-;; place where users can add stuff
-;(defcustom dtk-mode-hook nil)
-
-;; (defcustom dtk-mode-map nil
-;;   "Major mode keymap for `dtk-mode'.")
-
 (defun dtk-make-overlay-verse-number (beg end)
   "Make an overlay for the verse number beginning at point BEG and ending at point END."
   (let ((ov (make-overlay beg end
@@ -817,20 +805,10 @@ For a complete example, see how
   "Major mode for displaying dtk text
 \\{dtk-mode-map}
 Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
-  ;;(kill-all-local-variables)
-  ;;(use-local-map dtk-mode-map)
-  ;;(setq mode-name "dtk")
-  ;;(setq major-mode 'dtk-mode)
-  ;;(set-syntax-table text-mode-syntax-table)
-  ;;(setq local-abbrev-table dtk-mode-abbrev-table)
-  ;; indent with #\Tab
-  ;;(setq indent-line-function 'dtk-indent-line)
-  ;; syntax highlighting/font lock
   (setq font-lock-defaults '(dtk-font-lock-keywords))
   (make-local-variable 'paragraph-start)
   (make-local-variable 'paragraph-separate)
   (setq word-wrap dtk-word-wrap)
-  ;;(run-hooks 'text-mode-hook 'dtk-mode-hook)
   )
 
 (define-key dtk-mode-map "c" 'dtk-clear-dtk-buffer)
