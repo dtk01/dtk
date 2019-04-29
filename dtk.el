@@ -22,6 +22,10 @@
 (require 'seq)
 (require 'subr-x)
 
+(defvar dtk-program "diatheke"
+  "Front-end to SWORD library. Only diatheke is supported at the moment."
+  )
+
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
     "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galatians" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
@@ -54,6 +58,13 @@
 (defvar dtk-module-category nil
   "Module category last selected by the user.")
 
+(defvar dtk--recent-book nil
+  "Most recently used book when reading user's completion."
+  ;; Normally we read the same book during a short period of time, so save
+  ;; latest input as default. On the contrary, chapter and verses are short
+  ;; numeric input, so we skip them.
+  )
+
 ;;
 ;; dictionary
 ;;
@@ -74,14 +85,10 @@
 (defun dtk ()
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
   (interactive)
-  (if (dtk-buffer-exists-p)
-      (switch-to-buffer-other-window dtk-buffer-name)
-    (if (dtk-biblical-texts)
-	(if (not (dtk-go-to))
-	    (let ((dtk-buffer (dtk-ensure-dtk-buffer-exists)))
-	      (dtk-switch-to-dtk-buffer)
-	      (dtk-mode)))
-      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts."))))
+  (if (not (dtk-biblical-texts))
+      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts.")
+    (dtk-init)
+    (dtk-go-to)))
 
 (defun dtk-dictionary (key module)
   "Set DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
@@ -90,7 +97,7 @@
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
-  (process-lines "diatheke" "-b" module "-k" key))
+  (process-lines dtk-program "-b" module "-k" key))
 
 (defun dtk-dict-handle-raw-lines (lines module)
   "Helper function for DTK-DICTIONARY. Handles list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE."
@@ -160,75 +167,75 @@
       nil)))
 
 (defun dtk-bible (&optional book chapter verse dtk-buffer-p)
-  "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If BOOK is not specified, rely on interacting via the minibuffer to obtain book, chapter, and verse. Insert into the dtk buffer if DTK-BUFFER-P is true."
+  "Query diatheke and insert text.
+With `C-u' prefix arg, change module temporarily.
+
+Text is inserted in place, unless DTK-BUFFER-P is true.
+
+BOOK is a string. CHAPTER is an integer. VERSE is an integer. If
+BOOK is not specified, rely on interacting via the minibuffer to
+obtain book, chapter, and verse."
   (interactive)
-  (if (not (dtk-biblical-texts))
-      (warn "One or more Biblical texts must be installed first")
-    (let ((final-book (or book
-			  (minibuffer-with-setup-hook 'minibuffer-complete
-			    (let ((completion-ignore-case t))
-			      (completing-read "Book: "
-					       dtk-books))))))
-      (let* ((final-chapter (if book
-				(if chapter
-				    (number-to-string chapter)
-				  "")
-			      (read-from-minibuffer "Chapter: ")))
-	     (final-verse (if book
-			      (if verse
-				  (number-to-string verse)
-				"")
-			    (read-from-minibuffer "Verse: "))))
-	(let ((chapter-verse (if (not (dtk-empty-sequence-p final-chapter))
-				 (if final-verse
-				     (concat final-chapter ":" final-verse)
-				   chapter)
-			       "")))
-	  (when dtk-buffer-p
-	    (dtk-ensure-dtk-buffer-exists)
-	    ;; if dtk buffer is already established, just move point to it
-	    (switch-to-buffer-other-window dtk-buffer-name)
-	    (dtk-mode)
-	    (setq word-wrap dtk-word-wrap))
-	  (let ((start-point (point)))
-	    (dtk-bible--insert-using-diatheke final-book chapter-verse)
-	    (let ((insert-end (point)))
-	      (if dtk-compact-view-p
-		  (dtk-compact-region--sto start-point insert-end))
-	      ;; Remove dictionary support until this is thought through.
-	      (if (not dtk-show-dict-numbers)
-	      	  (while (dtk-handle-next-dict-number-in-buffer start-point)
-	      	    t)))))))))
+  (when (not (dtk-biblical-texts))
+    (error "One or more Biblical texts must be installed first"))
+  (let* ((completion-ignore-case t)
+         (final-module  (or (if current-prefix-arg ;; Called with prefix argument
+                                (completing-read "Module: " (dtk-module-names
+                                                             dtk-module-category)
+                                                 nil t nil nil '(nil)))
+                            dtk-module))
+         (final-book    (or book
+                            (setq dtk--recent-book
+                                  (completing-read "Book: " dtk-books nil nil nil nil dtk--recent-book))))
+         (final-chapter (or (when chapter (number-to-string chapter))
+                            (read-from-minibuffer "Chapter: ")))
+         (final-verse   (or (when verse (number-to-string verse))
+                            (read-from-minibuffer "Verse: ")))
+         (chapter-verse (concat final-chapter ":" final-verse)))
+    ;; Init dtk if dtk-buffer-p is true and dtk-buffer doesn't exist yet
+    (when (and dtk-buffer-p
+               (not (dtk-buffer-exists-p)))
+      (dtk-init))
+    ;; Insert text directly
+    (dtk-bible--insert-using-diatheke final-book chapter-verse final-module)
+    )
+  )
 
-(defun dtk-bible--insert-using-diatheke (book chapter-verse)
+(defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
-  (if (executable-find "diatheke")
-      (progn
-	;; sanity check
-	(if (not dtk-module)
-	    (warn "Define dtk-module ('m') first")
-	  (progn
-	    (call-process "diatheke" nil t
-			  t     ; redisplay buffer as output is inserted
-			  ;; arguments: -b KJV k John
-			  "-o" "n"
-			  "-b" dtk-module "-k" book chapter-verse)
-	    ;; Assume diatheke omits text of verse(s) and then omits
-	    ;; - zero or more empty lines followed by
-	    ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
-	    ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
-	    ;; - followed by a zero or more newlines
+  (let ((module (or module dtk-module)))
+    (insert
+     (with-temp-buffer
+       (call-process dtk-program nil t
+                     t     ; redisplay buffer as output is inserted
+                     ;; arguments: -b KJV k John
+                     "-o" "n"
+                     "-b" module "-k" book chapter-verse)
+       ;; Assume diatheke omits text of verse(s) and then omits
+       ;; - zero or more empty lines followed by
+       ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
+       ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
+       ;; - followed by a zero or more newlines
 
-	    ;; Search back and remove (<module name>)
-	    (let ((end-point (point)))
-	      (re-search-backward "^(.*)" nil t 1)
-	      (delete-region (point) end-point))
-	    ;; Search back and remove duplicate text of last verse and the preceding colon
-	    (let ((end-point (point)))
-	      (re-search-backward "^:" nil t 1)
-	      (delete-region (point) end-point))
-	    t)))
-    (message (concat "diatheke not found found; please verify diatheke is installed"))))
+       ;; Post-process texts
+       ;; Search back and remove (<module name>)
+       (let ((end-point (point)))
+         (re-search-backward "^(.*)" nil t 1)
+         (delete-region (point) end-point))
+       ;; Search back and remove duplicate text of last verse and the preceding colon
+       (let ((end-point (point)))
+         (re-search-backward "^:" nil t 1)
+         (delete-region (point) end-point))
+       (if dtk-compact-view-p
+           (dtk-compact-region--sto (point-min) (point-max)))
+       ;; Remove dictionary support until this is thought through.
+       (if (not dtk-show-dict-numbers)
+           (while (dtk-handle-next-dict-number-in-buffer (point-min))
+             t))
+       ;; Return contents of the temporary buffer
+       (buffer-string)
+       )))
+  t)
 
 (defun dtk-other ()
   "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
@@ -243,7 +250,7 @@
     (dtk-clear-search-buffer)
     (dtk-switch-to-search-buffer)
     (dtk-search-mode)
-    (call-process "diatheke" nil
+    (call-process dtk-program nil
 		  search-buffer
 		  t "-b" dtk-module "-s" "phrase" "-k" word-or-phrase)))
 
@@ -290,7 +297,7 @@
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
   (let ((modulelist-strings
-	 (process-lines "diatheke" "-b" "system" "-k" "modulelist"))
+	 (process-lines dtk-program "-b" "system" "-k" "modulelist"))
 	(modules-by-category nil))
     ;; construct list with the form ((category1 module11 ...) ... (categoryN moduleN1 ...))
     (dolist (x modulelist-strings)
@@ -320,10 +327,9 @@
   "Prompt the user to select a module category."
   (interactive)
   (let ((module-category
-	 (minibuffer-with-setup-hook 'minibuffer-complete
-	   (let ((completion-ignore-case t))
-	     (completing-read "Module type: "
-			      (dtk-modulelist))))))
+         (let ((completion-ignore-case t))
+           (completing-read "Module type: "
+                            (dtk-modulelist)))))
     (if (and module-category
 	     (not (string= module-category "")))
 	(setf dtk-module-category module-category))))
@@ -333,15 +339,14 @@
   "Prompt the user to select a module."
   (interactive)
   (let ((module
-	 (minibuffer-with-setup-hook 'minibuffer-complete
-	   (let ((completion-ignore-case t))
-	     (completing-read "Module: "
-			      (dtk-module-names dtk-module-category)
-			      nil
-			      t
-			      nil
-			      nil
-			      '(nil))))))
+         (let ((completion-ignore-case t))
+           (completing-read "Module: "
+                            (dtk-module-names dtk-module-category)
+                            nil
+                            t
+                            nil
+                            nil
+                            '(nil)))))
     (if module
 	(setf dtk-module module)
       (message "Module not selected"))))
@@ -357,26 +362,27 @@
   "Clear the dtk buffer."
   (interactive)
   (with-current-buffer dtk-buffer-name
-    (delete-region (progn (goto-char (point-min)) (point))
-		   (progn (goto-char (point-max)) (point)))))
+    (delete-region (point-min) (point-max))))
 
 (defun dtk-clear-search-buffer ()
   "Clear the search buffer."
   (with-current-buffer dtk-search-buffer-name
-    (delete-region (progn (goto-char (point-min)) (point))
-		   (progn (goto-char (point-max)) (point)))))
+    (delete-region (point-min) (point-max))))
 
-(defun dtk-ensure-dtk-buffer-exists ()
-  "Ensure the default dtk buffer exists."
-  (get-buffer-create dtk-buffer-name))
+(defun dtk-init ()
+  "Initialize dtk buffer and switch to it."
+  (when (not (dtk-buffer-exists-p))
+    (get-buffer-create dtk-buffer-name)
+    ;; Switch window only when we're not already in *dtk*
+    (if (not (string= (buffer-name) dtk-buffer-name))
+        (switch-to-buffer-other-window dtk-buffer-name)
+      (switch-to-buffer dtk-buffer-name))
+    (dtk-mode))
+  )
 
 (defun dtk-ensure-search-buffer-exists ()
   "Ensure the default dtk buffer exists for conducting a search."
   (get-buffer-create dtk-search-buffer-name))
-
-(defun dtk-switch-to-dtk-buffer ()
-  "Switch to the dtk buffer using SWITCH-TO-BUFFER."
-  (switch-to-buffer dtk-buffer-name))
 
 (defun dtk-switch-to-search-buffer ()
   "Switch to the dtk search buffer using SWITCH-TO-BUFFER."
@@ -544,7 +550,7 @@
 	(module-category nil))
     (let ((abbrevs-descriptions nil))
       (cl-loop for line in (s-lines (with-temp-buffer
-                                      (call-process "diatheke" nil '(t nil) nil
+                                      (call-process dtk-program nil '(t nil) nil
                                                     "-b" "system" "-k" "modulelist")
                                       (buffer-string)))
 	       when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
@@ -783,19 +789,20 @@ For a complete example, see how
   "Major mode for displaying dtk text
 \\{dtk-mode-map}
 Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
-  ;(kill-all-local-variables)
-  ;(use-local-map dtk-mode-map)
-  ;(setq mode-name "dtk")
-  ;(setq major-mode 'dtk-mode)
-  ;(set-syntax-table text-mode-syntax-table)
-  ;(setq local-abbrev-table dtk-mode-abbrev-table)
+  ;;(kill-all-local-variables)
+  ;;(use-local-map dtk-mode-map)
+  ;;(setq mode-name "dtk")
+  ;;(setq major-mode 'dtk-mode)
+  ;;(set-syntax-table text-mode-syntax-table)
+  ;;(setq local-abbrev-table dtk-mode-abbrev-table)
   ;; indent with #\Tab
   ;;(setq indent-line-function 'dtk-indent-line)
   ;; syntax highlighting/font lock
   (setq font-lock-defaults '(dtk-font-lock-keywords))
   (make-local-variable 'paragraph-start)
   (make-local-variable 'paragraph-separate)
-  ;(run-hooks 'text-mode-hook 'dtk-mode-hook)
+  (setq word-wrap dtk-word-wrap)
+  ;;(run-hooks 'text-mode-hook 'dtk-mode-hook)
   )
 
 (define-key dtk-mode-map "c" 'dtk-clear-dtk-buffer)
@@ -1045,11 +1052,6 @@ chapter text property value and X does not return a true value."
 	  (<= char-code 90))
      (and (>= char-code 97)
 	  (<= char-code 122)))))
-
-(defun dtk-empty-sequence-p (x)
-  "Return a true value if X is NIL or a sequence of length 0."
-  (or (not x)
-      (= 0 (length x))))
 
 (defun dtk-number-at-point (&optional point)
   "A more flexible version of NUMBER-AT-POINT. POINT optionally specifies a point."
