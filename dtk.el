@@ -18,7 +18,8 @@
 
 ;;; Code:
 
-;; Dependencies
+
+;;;; Dependencies
 (require 'cl-lib)
 (require 'dash)
 (require 's)
@@ -75,7 +76,7 @@ thing made that was made."
 (defcustom dtk-module-category nil
   "Module category last selected by the user.")
 
-;; Dictionary settings
+;;;;; Dictionary settings
 (defcustom dtk-dict-crossrefs nil
   "Cross-references for the most recent dictionary lookup.")
 
@@ -85,7 +86,7 @@ thing made that was made."
 (defcustom dtk-dict-word nil
   "The word (raw string) for the most recent dictionary lookup.")
 
-;; Internal variables
+;;;;; Internal variables
 (defcustom dtk--recent-book nil
   "Most recently used book when reading user's completion."
   ;; Normally we read the same book during a short period of time, so save
@@ -93,7 +94,7 @@ thing made that was made."
   ;; numeric input, so we skip them.
   )
 
-;; Constants
+;;;;; Constants
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
     "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galatians" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
@@ -105,10 +106,7 @@ thing made that was made."
   (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
 
-;;
-;; interact with diatheke
-;;
-
+;;; Functions
 ;;;###autoload
 (defun dtk ()
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
