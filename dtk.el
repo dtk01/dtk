@@ -1,7 +1,7 @@
 ;;; dtk.el --- access SWORD content via diatheke
-
+;;
 ;; Copyright (C) 2017-2019 David Thompson
-
+;;
 ;; Author: David Thompson
 ;; Keywords: hypermedia
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6.1") (dash "2.12.0") (seq "1.9") (s "1.9"))
@@ -9,23 +9,92 @@
 ;; URL: https://github.com/dtk01/dtk.el
 
 ;;; Commentary:
-
+;;
 ;; This package provides access to SWORD content via diatheke, facilitating
-;; reading a Biblical text, or other diatheke-accessible material, in Emacs.
-
-;; To browse to a particular text, use `dtk`.
+;; reading Biblical text or other diatheke-accessible material in Emacs.
+;;
+;; To browse a particular text in a dedicated buffer, use `dtk'. To insert text
+;; directly, use `dtk-bible'.
 
 ;;; Code:
+
+
+;;;; Dependencies
 (require 'cl-lib)
 (require 'dash)
 (require 's)
 (require 'seq)
 (require 'subr-x)
 
-(defvar dtk-program "diatheke"
-  "Front-end to SWORD library. Only diatheke is supported at the moment."
+;;;; Customization
+;; User configurable variables:
+(defgroup dtk nil
+  "Read Biblical text and other SWORD resources through diatheke."
+  :prefix "dtk-"
+  :group 'convenience)
+
+;;;;; General Settings
+(defcustom dtk-program "diatheke"
+  "Front-end to SWORD library.
+Only diatheke is supported at the moment."
+  :type 'string)
+
+(defcustom dtk-word-wrap t
+  "Non-nil means to use word-wrapping for continuation lines."
+  :type 'boolean)
+
+(defcustom dtk-compact-view t
+  "Show verses in compact view.
+If nil, display all verses as if they're retrieved independently, e.g:
+
+John 1:1: In the beginning was the Word, and the Word was with God, and the Word was God.
+John 1:2: The same was in the beginning with God.
+John 1:3: All things were made by him; and without him was not any thing made that was made.
+
+If non-nil, hide repeated \"chapter\" for all verses except the first one, e.g:
+
+John 1:1 In the beginning was the Word, and the Word was with
+God, and the Word was God. 2 The same was in the beginning with
+God. 3 All things were made by him; and without him was not any
+thing made that was made."
+  :type 'boolean)
+
+(defcustom dtk-buffer-name "*dtk*"
+  "Name of buffer for displaying text.")
+
+(defcustom dtk-dict-buffer-name "*dtk-dict*"
+  "Name of buffer for displaying dictionary entries and references.")
+
+(defcustom dtk-search-buffer-name "*dtk-search*"
+  "Name of buffer for displaying search results.")
+
+;;;;; Biblical Text defaults
+;; TODO: "module" is a more general term. Rename it properly.
+(defcustom dtk-module nil
+  "Module currently in use.")
+
+(defcustom dtk-module-category nil
+  "Module category last selected by the user.")
+
+;;;;; Dictionary settings
+(defcustom dtk-dict-crossrefs nil
+  "Cross-references for the most recent dictionary lookup.")
+
+(defcustom dtk-dict-def nil
+  "Definition and notes for the most recent dictionary lookup.")
+
+(defcustom dtk-dict-word nil
+  "The word (raw string) for the most recent dictionary lookup.")
+
+;;;;; Internal variables
+(defcustom dtk--recent-book nil
+  "Most recently used book when reading user's completion."
+  ;; Normally we read the same book during a short period of time, so save
+  ;; latest input as default. On the contrary, chapter and verses are short
+  ;; numeric input, so we skip them.
   )
 
+;;;;; Constants
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
     "Matthew" "Mark" "Luke" "John" "Acts" "Romans" "I Corinthians" "II Corinthians" "Galatians" "Ephesians" "Philippians" "Colossians" "I Thessalonians" "II Thessalonians" "I Timothy" "II Timothy" "Titus" "Philemon" "Hebrews" "James" "I Peter" "II Peter" "I John" "II John" "III John" "Jude"
@@ -37,50 +106,7 @@
   (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
 
-(defvar dtk-buffer-name "*dtk*"
-  "The name of the default buffer used by dtk for displaying the text of interest.")
-
-(defvar dtk-dict-buffer-name "*dtk-dict*"
-  "The name of the default buffer used by dtk for handling dictionary entries and references.")
-
-(defvar dtk-search-buffer-name "*dtk-search*"
-  "The name of the default buffer used by dtk for handling searches.")
-
-(defvar dtk-compact-view-p t
-  "If a true value, do not use full citation for each verse. Rather, show only verse number(s) in a compact form.")
-
-(defvar dtk-word-wrap t
-  "The value of this variable should satisfy the predicate booleanp. If its value is true, wrap continuation lines at word boundaries (space or tab character) nearest to right window edge.")
-
-(defvar dtk-module nil
-  "Module currently in use.")
-
-(defvar dtk-module-category nil
-  "Module category last selected by the user.")
-
-(defvar dtk--recent-book nil
-  "Most recently used book when reading user's completion."
-  ;; Normally we read the same book during a short period of time, so save
-  ;; latest input as default. On the contrary, chapter and verses are short
-  ;; numeric input, so we skip them.
-  )
-
-;;
-;; dictionary
-;;
-(defvar dtk-dict-crossrefs nil
-  "Cross-references for the most recent dictionary lookup.")
-
-(defvar dtk-dict-def nil
-  "Definition and notes for the most recent dictionary lookup.")
-
-(defvar dtk-dict-word nil
-  "The word (raw string) for the most recent dictionary lookup.")
-
-;;
-;; interact with diatheke
-;;
-
+;;; Functions
 ;;;###autoload
 (defun dtk ()
   "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
@@ -226,7 +252,7 @@ obtain book, chapter, and verse."
        (let ((end-point (point)))
          (re-search-backward "^:" nil t 1)
          (delete-region (point) end-point))
-       (if dtk-compact-view-p
+       (if dtk-compact-view
            (dtk-compact-region--sto (point-min) (point-max)))
        ;; Remove dictionary support until this is thought through.
        (if (not dtk-show-dict-numbers)
@@ -391,7 +417,7 @@ obtain book, chapter, and verse."
 ;;;
 ;;; interact with dtk buffers
 ;;;
-(defvar dtk-verse-raw-citation-verse-number-regexp
+(defcustom dtk-verse-raw-citation-verse-number-regexp
   ":[[:digit:]]+:"
   "A regular expression used to match verse number(s).")
 
@@ -711,7 +737,7 @@ For a complete example, see how
 	  (dtk-dict-show-current-dict))
       (message "%s" "No dictionary data"))))
 
-(defvar dtk-show-dict-numbers nil
+(defcustom dtk-show-dict-numbers nil
   "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
 
 ;;
@@ -720,14 +746,13 @@ For a complete example, see how
 
 ;;
 ;; font lock
-(defvar dtk-books-font-lock-variable-name-face-string
+(defcustom dtk-books-font-lock-variable-name-face-string
   (concat "^\\("
 	  (mapconcat #'(lambda (book)
 			 book)
 		     ;; treat last book differently
 		     dtk-books ; (butlast dtk-books 1)
-		     "\\|")
-	  ;(car (last dtk-books))
+		     "\\|")          
 	  "\\)")
   "Facilitate font lock in dtk major mode for books in DTK-BOOKS.")
 
@@ -763,17 +788,6 @@ For a complete example, see how
   "Face for marking verse number."
   :group 'dtk-faces)
 
-;;
-;; misc dtk mode stuff
-;; (defvar dtk-mode-abbrev-table nil
-;;   "Abbrev table used while in dtk mode.")
-
-;; place where users can add stuff
-;(defvar dtk-mode-hook nil)
-
-;; (defvar dtk-mode-map nil
-;;   "Major mode keymap for `dtk-mode'.")
-
 (defun dtk-make-overlay-verse-number (beg end)
   "Make an overlay for the verse number beginning at point BEG and ending at point END."
   (let ((ov (make-overlay beg end
@@ -789,20 +803,10 @@ For a complete example, see how
   "Major mode for displaying dtk text
 \\{dtk-mode-map}
 Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
-  ;;(kill-all-local-variables)
-  ;;(use-local-map dtk-mode-map)
-  ;;(setq mode-name "dtk")
-  ;;(setq major-mode 'dtk-mode)
-  ;;(set-syntax-table text-mode-syntax-table)
-  ;;(setq local-abbrev-table dtk-mode-abbrev-table)
-  ;; indent with #\Tab
-  ;;(setq indent-line-function 'dtk-indent-line)
-  ;; syntax highlighting/font lock
   (setq font-lock-defaults '(dtk-font-lock-keywords))
   (make-local-variable 'paragraph-start)
   (make-local-variable 'paragraph-separate)
   (setq word-wrap dtk-word-wrap)
-  ;;(run-hooks 'text-mode-hook 'dtk-mode-hook)
   )
 
 (define-key dtk-mode-map "c" 'dtk-clear-dtk-buffer)
