@@ -45,6 +45,18 @@ To insert Biblical text directly in any buffer, use <mbd>M-x</kbd> `dtk-bible`.
 Call with prefix argument (`C-u`) to temporarily change module when inserting
 text.
 
+An example `use-package` configuration:
+
+```emacs-lisp
+(use-package dtk
+  :bind (("C-c B" . dtk-bible))
+  :custom
+  (dtk-default-module "KJV")
+  (dtk-default-module-category "Biblical Texts")
+  (dtk-word-wrap t)
+  )
+```
+
 ## Performing a dictionary lookup
 
 Some texts have dictionary references embedded in the texts. For these texts, dictionary lookups may be available. By default, <kbd>S</kbd> will, by invoking `dtk-show-dict-entry`, display the related dictionary entry, if that entry is available.
