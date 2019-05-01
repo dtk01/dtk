@@ -809,19 +809,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (setq word-wrap dtk-word-wrap)
   )
 
-(define-key dtk-mode-map "c" 'dtk-clear-dtk-buffer)
-(define-key dtk-mode-map "b" 'dtk-backward-verse)
-(define-key dtk-mode-map "g" 'dtk-go-to)
-(define-key dtk-mode-map "f" 'dtk-forward-verse)
-(define-key dtk-mode-map "m" 'dtk-select-module)
-(define-key dtk-mode-map "M" 'dtk-select-module-category)
-(define-key dtk-mode-map "s" 'dtk-search)
-(define-key dtk-mode-map "S" 'dtk-show-dict-entry)
-(define-key dtk-mode-map "q" 'dtk-quit)
-(define-key dtk-mode-map "x" 'dtk-follow)
-(define-key dtk-mode-map (kbd "C-M-b") 'dtk-backward-chapter)
-(define-key dtk-mode-map (kbd "C-M-f") 'dtk-forward-chapter)
-
 (defun dtk-to-verse-number-font (beg end)
   "Make an overlay for the verse number beginning at point BEG and ending at point END. Modify the text properties of the verse number to enhance readability."
   (with-current-buffer dtk-buffer-name
@@ -834,16 +821,34 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 (define-derived-mode dtk-search-mode dtk-mode "dtk-search"
   "Major mode for interacting with dtk search results.")
 
-(define-key dtk-search-mode-map
-  [return] 'dtk-preview-citation)
-
 ;;;###autoload
 (define-derived-mode dtk-dict-mode dtk-mode "dtk-dict"
   "Major mode for interacting with dtk dict results.")
 
-;;;
+(defvar dtk-mode-map
+  (let ((map (make-keymap)))
+    (define-key map "c" 'dtk-clear-dtk-buffer)
+    (define-key map "b" 'dtk-backward-verse)
+    (define-key map "g" 'dtk-go-to)
+    (define-key map "f" 'dtk-forward-verse)
+    (define-key map "m" 'dtk-select-module)
+    (define-key map "M" 'dtk-select-module-category)
+    (define-key map "s" 'dtk-search)
+    (define-key map "S" 'dtk-show-dict-entry)
+    (define-key map "q" 'dtk-quit)
+    (define-key map "x" 'dtk-follow)
+    (define-key map (kbd "C-M-b") 'dtk-backward-chapter)
+    (define-key map (kbd "C-M-f") 'dtk-forward-chapter)    
+    map)
+  "Keymap for in dtk buffer.")
+
+(defvar dtk-search-mode-map
+  (let ((map (make-keymap)))
+    (define-key map [return] 'dtk-preview-citation)
+    map)
+  "Keymap for dtk search buffer.")
+
 ;;; navigating (by book, chapter, and verse)
-;;;
 (defun dtk-at-verse-citation? ()
   "Return a true value if point is at a verse citation."
   ;; could be at a compact citation or at a full citation (e.g., 'John 1:1')
