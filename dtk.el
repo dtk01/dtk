@@ -218,10 +218,12 @@ obtain book, chapter, and verse."
          (final-verse   (or (when verse (number-to-string verse))
                             (read-from-minibuffer "Verse: ")))
          (chapter-verse (concat final-chapter ":" final-verse)))
-    ;; Init dtk if dtk-buffer-p is true and dtk-buffer doesn't exist yet
-    (when (and dtk-buffer-p
-               (not (dtk-buffer-exists-p)))
-      (dtk-init))
+    ;; If dtk-buffer-p is true, insert text in the default dtk buffer
+    (when dtk-buffer-p
+      (cond ((not (dtk-buffer-exists-p))
+	     (dtk-init))
+	    (t
+	     (switch-to-buffer dtk-buffer-name))))
     ;; Insert text directly
     (dtk-bible--insert-using-diatheke final-book chapter-verse final-module)
     )
