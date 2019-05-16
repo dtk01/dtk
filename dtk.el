@@ -800,6 +800,23 @@ For a complete example, see how
     (overlay-put ov 'dtk-overlay t)
     ov))
 
+(defvar dtk-mode-map
+  (let ((map (make-keymap)))
+    (define-key map "c" 'dtk-clear-dtk-buffer)
+    (define-key map "b" 'dtk-backward-verse)
+    (define-key map "g" 'dtk-go-to)
+    (define-key map "f" 'dtk-forward-verse)
+    (define-key map "m" 'dtk-select-module)
+    (define-key map "M" 'dtk-select-module-category)
+    (define-key map "s" 'dtk-search)
+    (define-key map "S" 'dtk-show-dict-entry)
+    (define-key map "q" 'dtk-quit)
+    (define-key map "x" 'dtk-follow)
+    (define-key map (kbd "C-M-b") 'dtk-backward-chapter)
+    (define-key map (kbd "C-M-f") 'dtk-forward-chapter)
+    map)
+  "Keymap for in dtk buffer.")
+
 ;;;###autoload
 (define-derived-mode dtk-mode text-mode "dtk"
   "Major mode for displaying dtk text
@@ -826,23 +843,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 ;;;###autoload
 (define-derived-mode dtk-dict-mode dtk-mode "dtk-dict"
   "Major mode for interacting with dtk dict results.")
-
-(defvar dtk-mode-map
-  (let ((map (make-keymap)))
-    (define-key map "c" 'dtk-clear-dtk-buffer)
-    (define-key map "b" 'dtk-backward-verse)
-    (define-key map "g" 'dtk-go-to)
-    (define-key map "f" 'dtk-forward-verse)
-    (define-key map "m" 'dtk-select-module)
-    (define-key map "M" 'dtk-select-module-category)
-    (define-key map "s" 'dtk-search)
-    (define-key map "S" 'dtk-show-dict-entry)
-    (define-key map "q" 'dtk-quit)
-    (define-key map "x" 'dtk-follow)
-    (define-key map (kbd "C-M-b") 'dtk-backward-chapter)
-    (define-key map (kbd "C-M-f") 'dtk-forward-chapter)    
-    map)
-  "Keymap for in dtk buffer.")
 
 (defvar dtk-search-mode-map
   (let ((map (make-keymap)))
