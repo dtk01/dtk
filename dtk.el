@@ -451,8 +451,11 @@ obtain book, chapter, and verse."
       (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))))
   (when text
     (let ((text-start (point)))
-      (insert text)
+      (dtk-verse-text-inserter text)
       (set-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse)))))
+
+(defun dtk-verse-text-inserter (text)
+  (insert text))
 
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
