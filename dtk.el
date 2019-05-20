@@ -452,7 +452,8 @@ obtain book, chapter, and verse."
   (when text
     (let ((text-start (point)))
       (dtk-verse-text-inserter text)
-      (set-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse)))))
+      ;; verse text inserter may set text properties
+      (add-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse)))))
 
 (defun dtk-verse-text-inserter (text)
   (insert text))
