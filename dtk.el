@@ -649,24 +649,24 @@ representation of a W element:
   (interactive)
   (let ((full-citation-component (dtk-at-verse-full-citation?)))
     (when full-citation-component
-	;; place point at space before chapter number
-	(cond ((eq full-citation-component :space-or-book)
-	       (search-forward ":")
-	       (search-backward " "))
-	      ((member full-citation-component
-		       '(:chapter :colon :verse))
-	       (search-backward " ")))
-	;; move to start of chapter name
-	(search-backward-regexp dtk-books-regexp)
-	;; kludge to anticipate any order in dtk-books-regexp
-	;; - if citation is at start of buffer, searching for non-word character will fail
-	(if (condition-case nil
-		(progn (search-backward-regexp "\\W")
-		       t)
-		(error nil
-		       (progn (beginning-of-line-text)
-			      nil)))
-	    (forward-char)))))
+      ;; place point at space before chapter number
+      (cond ((eq full-citation-component :space-or-book)
+	     (search-forward ":")
+	     (search-backward " "))
+	    ((member full-citation-component
+		     '(:chapter :colon :verse))
+	     (search-backward " ")))
+      ;; move to start of chapter name
+      (search-backward-regexp dtk-books-regexp)
+      ;; kludge to anticipate any order in dtk-books-regexp
+      ;; - if citation is at start of buffer, searching for non-word character will fail
+      (if (condition-case nil
+	      (progn (search-backward-regexp "\\W")
+		     t)
+	    (error nil
+		   (progn (beginning-of-line-text)
+			  nil)))
+	  (forward-char)))))
 
 ;;
 ;; parse diatheke raw text from a "Biblical Texts" text
