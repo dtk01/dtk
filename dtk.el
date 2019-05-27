@@ -225,21 +225,34 @@ obtain book, chapter, and verse."
 	    (t
 	     (switch-to-buffer dtk-buffer-name))))
     ;; Insert text directly
-    (dtk-bible--insert-using-diatheke final-book chapter-verse final-module)
+    (condition-case nil
+	(dtk-bible--insert-using-diatheke final-book chapter-verse final-module :osis)
+      (error
+       ;; at this point, consider the game up if XML parsing triggered an error;
+       ;; attempt to degrade gracefully and try simple/plain format
+       (dtk-bible--insert-using-diatheke final-book chapter-verse final-module :plain)))
     )
   )
 
-(defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module)
+(defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
+  (unless diatheke-output-format
+    (setq diatheke-output-format :plain))
   (let ((module (or module dtk-module)))
     (insert
      (with-temp-buffer
        (call-process dtk-program nil t
                      t     ; redisplay buffer as output is inserted
                      ;; arguments: -b KJV k John
-                     "-o" "n"
+                     "-o" (case diatheke-output-format
+			    (:osis "nfmslx")
+			    (:plain "n"))
+		     ;; FIXME: perform a sanity check to determine if OSIS is available for the given text
+		     "-f" (case diatheke-output-format
+			    (:osis "OSIS")
+			    (:plain "plain"))
                      "-b" module "-k" book chapter-verse)
-       ;; Assume diatheke omits text of verse(s) and then omits
+       ;; Assume diatheke emits text and then emits
        ;; - zero or more empty lines followed by
        ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
        ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
@@ -254,12 +267,14 @@ obtain book, chapter, and verse."
        (let ((end-point (point)))
          (re-search-backward "^:" nil t 1)
          (delete-region (point) end-point))
-       (if dtk-compact-view
-           (dtk-compact-region--sto (point-min) (point-max)))
-       ;; Remove dictionary support until this is thought through.
-       (if (not dtk-show-dict-numbers)
-           (while (dtk-handle-next-dict-number-in-buffer (point-min))
-             t))
+       ;; Parse text
+       (let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
+	 ;; PARSED-LINES is a list where each member has the form
+	 ;; (:book "John" :chapter 1 :verse 1 :text (...))
+	 (let ((parsed-lines (dtk--parse-osis-xml-lines raw-diatheke-text)))
+	   ;; replace diatheke output w/text from parsed-lines
+	   (delete-region (point-min) (point-max))
+	   (dtk-insert-verses parsed-lines)))
        ;; Return contents of the temporary buffer
        (buffer-string)
        )))
@@ -436,27 +451,123 @@ obtain book, chapter, and verse."
 
 (defun dtk-verse-inserter (book ch verse text new-bk-p new-ch-p)
   "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT. If this function is being invoked in the context of a change to a new book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P, respectively."
-  (when new-bk-p
-    (let ((book-start (point)))
+  (let ((book-start (point)))
+    (when (or (not dtk-compact-view) new-bk-p)
       (insert book #x20)
-      (set-text-properties book-start (point) (list 'book book))))
-  (when new-ch-p
-    (let ((chapter-start (point)))
-      (insert (int-to-string chapter)
-	      (if verse #x3a #x20))
-      (set-text-properties chapter-start (point) (list 'book book 'chapter chapter))))
+      (set-text-properties book-start (point) (list 'book book)))
+    (when (or (not dtk-compact-view) new-ch-p)
+      (let ((chapter-start (point)))
+	(insert (int-to-string chapter)
+		(if verse #x3a #x20))
+	(add-text-properties (if new-ch-p
+				 chapter-start
+			       book-start)
+			     (point)
+			     (list 'book book 'chapter chapter)))))
   (when verse
     (let ((verse-start (point)))
       (insert (int-to-string verse) #x20)
       (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))))
   (when text
     (let ((text-start (point)))
-      (dtk-verse-text-inserter text)
+      (funcall dtk-verse-text-inserter text)
       ;; verse text inserter may set text properties
-      (add-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse)))))
+      (add-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse))))
+  (unless dtk-compact-view
+    (insert #xa)))
 
-(defun dtk-verse-text-inserter (text)
-  (insert text))
+(defun dtk-insert-osis-string (string)
+  ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
+  (when (string-match "^[a-zA-Z]" string)
+    (when (not (member (char-before) '(32 9 10 11 12 13)))
+      (insert #x20)))
+  (insert string))
+
+(defun dtk-insert-osis-elt (osis-elt)
+  (let* ((tag (pop osis-elt))
+	 (attributes (pop osis-elt))
+	 (children osis-elt))
+    (case tag
+      (w
+       (when children
+	 (let ((lemma (let ((lemma-pair (assoc 'lemma attributes)))
+			(if lemma-pair
+			    (cdr lemma-pair)))))
+	   (let ((beg (point)))
+	     (dtk-simple-osis-inserter children)
+	     ;; add text properties
+	     (when lemma
+	       (add-text-properties beg (point) (list 'lemma lemma)))))))
+      (divineName
+       (dtk-simple-osis-inserter children))
+      (transChange
+       (when children
+	 (let ((beg (point)))
+	   (dtk-simple-osis-inserter children)
+	   ;;(add-text-properties beg (point) (list 'transChange t))
+	   ;;(add-text-properties beg (point) '(font-lock-face dtk-translChange-face))
+	   )))
+      (q				; quote
+       (dtk-simple-osis-inserter children))
+      ;; containers
+      (div
+       (let ((type (let ((type-pair (assoc 'type attributes)))
+		     (if type-pair
+			 (cdr type-pair)))))
+	 (cond ((and
+		 t		       ;dtk-honor-osis-div-paragraph-p
+		 (equalp type "paragraph"))
+		(insert #xa)))
+	 (dtk-simple-osis-inserter children)))
+      (chapter
+       (dtk-simple-osis-inserter children))
+      (verse
+       (dtk-simple-osis-inserter children))
+      (l				; poetic line(s)
+       (dtk-simple-osis-inserter children))
+      (lg				; poetic line(s)
+       (dtk-simple-osis-inserter children))
+      (note
+       (when nil			;dtk-show-notes-p
+	 (dtk-simple-osis-inserter children)))
+      ;; formatting
+      (milestone
+       (let ((type (let ((type-pair (assoc 'type attributes)))
+		     (if type-pair
+			 (cdr type-pair)))))
+	 (cond ((and nil	      ;dtk-honor-osis-milestone-line-p
+		     (equalp type "line"))
+		(insert #xa)))))
+      (lb
+       (when (and t			;dtk-honor-osis-lb-p
+		  (insert #xa))))
+      ;; indicate inability to handle this OSIS element
+      (t (when nil		   ;dtk-flag-unhandled-osis-elements-p
+	   (insert "!" (prin1-to-string tag) "!"))))))
+
+(defun dtk-insert-osis-thing (osis-thing)
+  "Insert verse text represented by OSIS-THING."
+  (cond ((stringp osis-thing)
+	 (dtk-insert-osis-string osis-thing))
+	((consp osis-thing)
+	 (dtk-insert-osis-elt osis-thing))
+	;; indicate inability to handle this elt
+	(t (insert "*" (prin1-to-string osis-thing) "*"))))
+
+(defvar dtk-verse-text-inserter
+  'dtk-simple-osis-inserter
+  "Specifies function used to insert verse text.
+
+The function is called with a single argument, CHILDREN, a list where
+each member is either a string or a list representing a child element
+permissible within an OSIS XML document. Consider this example
+representation of a W element:
+
+  (w ((lemma . \"strong:G1722\") (wn . \"001\")) \"In\")")
+
+(defun dtk-simple-osis-inserter (children)
+  (dolist (osis-elt children)
+    (dtk-insert-osis-thing osis-elt)))
 
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
@@ -473,7 +584,7 @@ obtain book, chapter, and verse."
        do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
 	    (if (equal chapter this-chapter)
 		(progn
-		  (unless (= (char-before) #x20)
+		  (unless (member (char-before) '(#x20 #x0a #x0d))
 		    (insert #x20))
 		  (dtk-verse-inserter book chapter verse text nil nil))
 	      ;; new chapter
@@ -538,24 +649,24 @@ obtain book, chapter, and verse."
   (interactive)
   (let ((full-citation-component (dtk-at-verse-full-citation?)))
     (when full-citation-component
-	;; place point at space before chapter number
-	(cond ((eq full-citation-component :space-or-book)
-	       (search-forward ":")
-	       (search-backward " "))
-	      ((member full-citation-component
-		       '(:chapter :colon :verse))
-	       (search-backward " ")))
-	;; move to start of chapter name
-	(search-backward-regexp dtk-books-regexp)
-	;; kludge to anticipate any order in dtk-books-regexp
-	;; - if citation is at start of buffer, searching for non-word character will fail
-	(if (condition-case nil
-		(progn (search-backward-regexp "\\W")
-		       t)
-		(error nil
-		       (progn (beginning-of-line-text)
-			      nil)))
-	    (forward-char)))))
+      ;; place point at space before chapter number
+      (cond ((eq full-citation-component :space-or-book)
+	     (search-forward ":")
+	     (search-backward " "))
+	    ((member full-citation-component
+		     '(:chapter :colon :verse))
+	     (search-backward " ")))
+      ;; move to start of chapter name
+      (search-backward-regexp dtk-books-regexp)
+      ;; kludge to anticipate any order in dtk-books-regexp
+      ;; - if citation is at start of buffer, searching for non-word character will fail
+      (if (condition-case nil
+	      (progn (search-backward-regexp "\\W")
+		     t)
+	    (error nil
+		   (progn (beginning-of-line-text)
+			  nil)))
+	  (forward-char)))))
 
 ;;
 ;; parse diatheke raw text from a "Biblical Texts" text
@@ -657,6 +768,76 @@ For a complete example, see how
               (text (when (s-present? (match-string 4 line))
                       (s-trim (match-string 4 line)))))
           (list :book book :chapter chapter :verse verse :text text)))))
+
+(defun dtk--parse-osis-xml-lines (text)
+  "Parse the string TEXT, assuming it is a set of lines in the OSIS output format generated by diatheke."
+  (let ((lines (s-lines text)))
+    (let ((lines-n (length lines))
+	  (parsed nil)
+	  (current-line-n 0))
+      (while (< current-line-n lines-n)
+	;; consume lines associated with a single verse
+	(multiple-value-bind (last-line-parsed-n parsed-verse)
+	    (dtk--diatheke-parse-osis-xml-for-verse lines current-line-n)
+	  (if parsed-verse
+	      (push parsed-verse parsed))
+	  (setf current-line-n (1+ last-line-parsed-n))))
+      (nreverse parsed))))
+
+(defvar dtk-parse-osis-ignore-regexp
+  (regexp-opt '("^Unprocessed Token:"))
+  "Regular expression describing lines to be ignored in diatheke OSIS output.")
+
+(defun dtk--diatheke-parse-osis-xml-for-verse (lines n)
+  "Consume lines associated with a single verse. Return multiple values where where the first value is the index of the last line consumed in parsing a single verse and the second value is a plist associated with a single verse. Use list of strings, LINES, starting at list element N. If an indication of the beginning of a verse is not encountered at element N, return nil."
+  ;; Anticipate LINES to correspond to what diatheke coughs up. For a single verse of a "Bible text", this is typically one or more lines of the form
+  ;; II Peter 3:15: <w lemma=\"strong:G3588 lemma.TR:την\" morph=\"robinson:T-ASF\" src=\"2\" wn=\"001\"/><w lemma=\"strong:G2532 lemma.TR:και\" morph=\"robinson:CONJ\" src=\"1\" wn=\"002\">And</w> <w lemma=\"strong:G2233 lemma.TR:ηγεισθε\" morph=\"robinson:V-PNM-2P\" src=\"8\" wn=\"003\">account</w> ...
+  ;;
+  ;; Note that diatheke may emit, for a single verse, a set of lines of the form
+  ;; II Peter 3:15: Unprocessed Token: <br /> in key II Peter 3:15
+  ;; Unprocessed Token: <br /> in key II Peter 3:15
+  ;; ...
+  (let ((line (elt lines n))
+	(current-line-n n)
+	(last-line-n (1- (length lines))))
+    (when (s-present? line)
+      (when (string-match dtk-sto--diatheke-parse-line-regexp line)
+	(let ((book (match-string 1 line))
+	      (chapter (string-to-number (match-string 2 line)))
+	      (verse (string-to-number (match-string 3 line)))
+	      ;; Ensure text is present, which may not be the case if
+	      ;; a verse starts with a newline.  See
+	      ;; <https://github.com/alphapapa/sword-to-org/issues/2>
+	      (first-line-raw-text (when (s-present? (match-string 4 line))
+				     (s-trim (match-string 4 line))))
+	      (text-raw ""))
+	  ;; Once initial line associated with verse has been dealt
+	  ;; with, modify the initial line so that it, along with
+	  ;; every subsequent line can be handled in the same manner.
+	  (when book
+	    (setf (elt lines n) first-line-raw-text))
+	  ;; per-line processing
+	  (do ((ignorep
+		;; discard/ignore some classes of diatheke OSIS output
+		(string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))
+		(string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))))
+	      (nil nil)
+	    (unless ignorep
+	      (setf text-raw
+		    (concatenate 'string text-raw (elt lines current-line-n))))
+	    (when (or (>= current-line-n last-line-n)
+		      ;; check if next line corresponds to start of a new verse
+		      (string-match dtk-sto--diatheke-parse-line-regexp (elt lines (1+ current-line-n))))
+	      (return))
+	    (incf current-line-n))
+	  ;; Add root element and parse text as a single piece of XML
+	  (let ((text-structured (with-temp-buffer
+				   (insert "<r>" text-raw "</r>")
+				   (xml-parse-region))))
+            (values current-line-n
+		    (list
+		     :book book :chapter chapter :verse verse
+		     :text (subseq (car text-structured) 2)))))))))
 
 ;;
 ;; dictionary: handle dictionary entries and references
