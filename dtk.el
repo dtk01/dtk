@@ -584,7 +584,7 @@ representation of a W element:
        do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
 	    (if (equal chapter this-chapter)
 		(progn
-		  (unless (= (char-before) #x20)
+		  (unless (member (char-before) '(#x20 #x0a #x0d))
 		    (insert #x20))
 		  (dtk-verse-inserter book chapter verse text nil nil))
 	      ;; new chapter
