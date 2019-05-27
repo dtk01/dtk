@@ -457,6 +457,83 @@ obtain book, chapter, and verse."
 
 (defun dtk-verse-text-inserter (text)
   (insert text))
+(defun dtk-insert-osis-string (string)
+  ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
+  (when (string-match "^[a-zA-Z]" string)
+    (when (not (member (char-before) '(32 9 10 11 12 13)))
+      (insert #x20)))
+  (insert string))
+
+(defun dtk-insert-osis-elt (osis-elt)
+  (let* ((tag (pop osis-elt))
+	 (attributes (pop osis-elt))
+	 (children osis-elt))
+    (case tag
+      (w
+       (when children
+	 (let ((lemma (let ((lemma-pair (assoc 'lemma attributes)))
+			(if lemma-pair
+			    (cdr lemma-pair)))))
+	   (let ((beg (point)))
+	     (dtk-simple-osis-inserter children)
+	     ;; add text properties
+	     (when lemma
+	       (add-text-properties beg (point) (list 'lemma lemma)))))))
+      (divineName
+       (dtk-simple-osis-inserter children))
+      (transChange
+       (when children
+	 (let ((beg (point)))
+	   (dtk-simple-osis-inserter children)
+	   ;;(add-text-properties beg (point) (list 'transChange t))
+	   ;;(add-text-properties beg (point) '(font-lock-face dtk-translChange-face))
+	   )))
+      (q				; quote
+       (dtk-simple-osis-inserter children))
+      ;; containers
+      (div
+       (let ((type (let ((type-pair (assoc 'type attributes)))
+		     (if type-pair
+			 (cdr type-pair)))))
+	 (cond ((and
+		 t		       ;dtk-honor-osis-div-paragraph-p
+		 (equalp type "paragraph"))
+		(insert #xa)))
+	 (dtk-simple-osis-inserter children)))
+      (chapter
+       (dtk-simple-osis-inserter children))
+      (verse
+       (dtk-simple-osis-inserter children))
+      (l				; poetic line(s)
+       (dtk-simple-osis-inserter children))
+      (lg				; poetic line(s)
+       (dtk-simple-osis-inserter children))
+      (note
+       (when nil			;dtk-show-notes-p
+	 (dtk-simple-osis-inserter children)))
+      ;; formatting
+      (milestone
+       (let ((type (let ((type-pair (assoc 'type attributes)))
+		     (if type-pair
+			 (cdr type-pair)))))
+	 (cond ((and nil	      ;dtk-honor-osis-milestone-line-p
+		     (equalp type "line"))
+		(insert #xa)))))
+      (lb
+       (when (and t			;dtk-honor-osis-lb-p
+		  (insert #xa))))
+      ;; indicate inability to handle this OSIS element
+      (t (when nil		   ;dtk-flag-unhandled-osis-elements-p
+	   (insert "!" (prin1-to-string tag) "!"))))))
+
+(defun dtk-insert-osis-thing (osis-thing)
+  "Insert verse text represented by OSIS-THING."
+  (cond ((stringp osis-thing)
+	 (dtk-insert-osis-string osis-thing))
+	((consp osis-thing)
+	 (dtk-insert-osis-elt osis-thing))
+	;; indicate inability to handle this elt
+	(t (insert "*" (prin1-to-string osis-thing) "*"))))
 
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
