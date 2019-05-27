@@ -225,21 +225,34 @@ obtain book, chapter, and verse."
 	    (t
 	     (switch-to-buffer dtk-buffer-name))))
     ;; Insert text directly
-    (dtk-bible--insert-using-diatheke final-book chapter-verse final-module)
+    (condition-case nil
+	(dtk-bible--insert-using-diatheke final-book chapter-verse final-module :osis)
+      (error
+       ;; at this point, consider the game up if XML parsing triggered an error;
+       ;; attempt to degrade gracefully and try simple/plain format
+       (dtk-bible--insert-using-diatheke final-book chapter-verse final-module :plain)))
     )
   )
 
-(defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module)
+(defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
+  (unless diatheke-output-format
+    (setq diatheke-output-format :plain))
   (let ((module (or module dtk-module)))
     (insert
      (with-temp-buffer
        (call-process dtk-program nil t
                      t     ; redisplay buffer as output is inserted
                      ;; arguments: -b KJV k John
-                     "-o" "n"
+                     "-o" (case diatheke-output-format
+			    (:osis "nfmslx")
+			    (:plain "n"))
+		     ;; FIXME: perform a sanity check to determine if OSIS is available for the given text
+		     "-f" (case diatheke-output-format
+			    (:osis "OSIS")
+			    (:plain "plain"))
                      "-b" module "-k" book chapter-verse)
-       ;; Assume diatheke omits text of verse(s) and then omits
+       ;; Assume diatheke emits text and then emits
        ;; - zero or more empty lines followed by
        ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
        ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
@@ -254,12 +267,14 @@ obtain book, chapter, and verse."
        (let ((end-point (point)))
          (re-search-backward "^:" nil t 1)
          (delete-region (point) end-point))
-       (if dtk-compact-view
-           (dtk-compact-region--sto (point-min) (point-max)))
-       ;; Remove dictionary support until this is thought through.
-       (if (not dtk-show-dict-numbers)
-           (while (dtk-handle-next-dict-number-in-buffer (point-min))
-             t))
+       ;; Parse text
+       (let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
+	 ;; PARSED-LINES is a list where each member has the form
+	 ;; (:book "John" :chapter 1 :verse 1 :text (...))
+	 (let ((parsed-lines (dtk--parse-osis-xml-lines raw-diatheke-text)))
+	   ;; replace diatheke output w/text from parsed-lines
+	   (delete-region (point-min) (point-max))
+	   (dtk-insert-verses parsed-lines)))
        ;; Return contents of the temporary buffer
        (buffer-string)
        )))
@@ -436,27 +451,31 @@ obtain book, chapter, and verse."
 
 (defun dtk-verse-inserter (book ch verse text new-bk-p new-ch-p)
   "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT. If this function is being invoked in the context of a change to a new book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P, respectively."
-  (when new-bk-p
-    (let ((book-start (point)))
+  (let ((book-start (point)))
+    (when (or (not dtk-compact-view) new-bk-p)
       (insert book #x20)
-      (set-text-properties book-start (point) (list 'book book))))
-  (when new-ch-p
-    (let ((chapter-start (point)))
-      (insert (int-to-string chapter)
-	      (if verse #x3a #x20))
-      (set-text-properties chapter-start (point) (list 'book book 'chapter chapter))))
+      (set-text-properties book-start (point) (list 'book book)))
+    (when (or (not dtk-compact-view) new-ch-p)
+      (let ((chapter-start (point)))
+	(insert (int-to-string chapter)
+		(if verse #x3a #x20))
+	(add-text-properties (if new-ch-p
+				 chapter-start
+			       book-start)
+			     (point)
+			     (list 'book book 'chapter chapter)))))
   (when verse
     (let ((verse-start (point)))
       (insert (int-to-string verse) #x20)
       (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))))
   (when text
     (let ((text-start (point)))
-      (dtk-verse-text-inserter text)
+      (funcall dtk-verse-text-inserter text)
       ;; verse text inserter may set text properties
-      (add-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse)))))
+      (add-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse))))
+  (unless dtk-compact-view
+    (insert #xa)))
 
-(defun dtk-verse-text-inserter (text)
-  (insert text))
 (defun dtk-insert-osis-string (string)
   ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
   (when (string-match "^[a-zA-Z]" string)
@@ -534,6 +553,21 @@ obtain book, chapter, and verse."
 	 (dtk-insert-osis-elt osis-thing))
 	;; indicate inability to handle this elt
 	(t (insert "*" (prin1-to-string osis-thing) "*"))))
+
+(defvar dtk-verse-text-inserter
+  'dtk-simple-osis-inserter
+  "Specifies function used to insert verse text.
+
+The function is called with a single argument, CHILDREN, a list where
+each member is either a string or a list representing a child element
+permissible within an OSIS XML document. Consider this example
+representation of a W element:
+
+  (w ((lemma . \"strong:G1722\") (wn . \"001\")) \"In\")")
+
+(defun dtk-simple-osis-inserter (children)
+  (dolist (osis-elt children)
+    (dtk-insert-osis-thing osis-elt)))
 
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
