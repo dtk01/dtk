@@ -2,6 +2,8 @@
 
 *Read Biblical texts in Emacs*
 
+![image](dtk.gif)
+
 ---
 
 [diatheke](https://crosswire.org/wiki/Frontends:Diatheke) is a front-end to the [SWORD](www.crosswire.org/sword/) library. **dtk** facilitates reading a Biblical text, or other [diatheke](https://crosswire.org/wiki/Frontends:Diatheke)-accessible material, in Emacs. 
