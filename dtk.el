@@ -847,41 +847,6 @@ For a complete example, see how
   "Face for a word or phrase with a corresponding dictionary entry."
   :group 'dtk-faces)
 
-(defun dtk-handle-next-dict-number-in-buffer (&optional beg)
-  "Return NIL if a dictionary entry isn't specified at a position succeeding BEG. Otherwise, return a true value."
-  (when beg (goto-char beg))
-  (if (search-forward "<" nil t 1)
-      (if (> (point) beg)
-	  ;; Grab the dictionary key/number, assuming a string of the form
-	  ;; <XN...N> where X is a single upper-case character and N...N
-	  ;; is some integer value.
-	  (let ((<-position (point))
-		(>-position (search-forward ">")))
-	    ;; DICT-N is the string representation of the dictionary key/number
-	    (let ((dict-n (buffer-substring-no-properties (1+ <-position) (1- >-position)))
-		  ;; G - Strong's Greek
-		  ;; H - Strong's Hebrew
-		  (module-spec (buffer-substring-no-properties <-position (1+ <-position))))
-	      ;; delete <XN...N> from the buffer
-	      (goto-char >-position)
-	      (delete-char (1- (- <-position >-position)))
-	      ;; Make an overlay for preceding word or phrase. (Just grab
-	      ;; word for now; worry about phrases later)
-	      (let* ((word-end (progn
-				 (backward-to-word 1)
-				 (point)))
-		     (word-start (progn (backward-word 1)
-					(point)))
-		     (ov (make-overlay word-start word-end)))
-		(setf (overlay-get ov 'dtk-dict-overlay) t)
-		(setf (overlay-get ov 'dtk-dict-number) dict-n)
-		(setf (overlay-get ov 'dtk-dict-module-spec) module-spec)
-		(overlay-put ov 'help-echo dict-n)
-		(overlay-put ov 'face 'dtk-dict-word)
-		(goto-char word-end)))
-	    t)
-	nil)))
-
 (defun dtk-dict-overlay-at-point ()
   "Return an overlay."
   (let ((overlays (overlays-at (point)))
