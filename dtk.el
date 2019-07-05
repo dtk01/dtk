@@ -503,6 +503,11 @@ obtain book, chapter, and verse."
     (case tag
       (w
        (when children
+	 ;; The example provided in the 2006 description of OSIS shows
+	 ;; the "gloss" attribute used to support inclusion of
+	 ;; Strong's numbers. The reality seems to be that the "lemma"
+	 ;; attribute is used to support inclusion of Strong's numbers
+	 ;; for Biblical texts.
 	 (let ((lemma (let ((lemma-pair (assoc 'lemma attributes)))
 			(if lemma-pair
 			    (cdr lemma-pair)))))
@@ -510,7 +515,20 @@ obtain book, chapter, and verse."
 	     (dtk-simple-osis-inserter children)
 	     ;; add text properties
 	     (when lemma
-	       (add-text-properties beg (point) (list 'lemma lemma)))))))
+	       (let ((strongs-refs (dtk-dict-parse-osis-xml-lemma lemma))
+		     (text-props nil))
+		 (unless strongs-refs
+		   (warn "Failed to handle lemma value %s" lemma))
+		 (map nil #'(lambda (strongs-ref)
+			      (destructuring-bind (strongs-number module)
+				  strongs-ref
+				(when dtk-show-dict-numbers (insert " " strongs-number))
+				(setq text-props
+				      (append
+				       (list 'dict (list strongs-number module))
+				       text-props))))
+		      strongs-refs)
+		 (add-text-properties beg (point) text-props)))))))
       (divineName
        (dtk-simple-osis-inserter children))
       (transChange
@@ -860,6 +878,17 @@ For a complete example, see how
   "Face for a word or phrase with a corresponding dictionary entry."
   :group 'dtk-faces)
 
+(defconst dtk-dict-osis-xml-lemma-strongs-regexp
+  ;; Look for a string of the form "strong:G1722" or
+  ;; "strong:G2532 strong:G2147". Note that multiple
+  ;; Strong's references may be attached to a single lemma attribute
+  ;; value.
+  (rx
+   "strong:"
+   (group-n 1 (char "GH")) ; Greek or Hebrew ("G" or "H")
+   (group-n 2 (1+ digit)) ; dictionary number
+   ))
+
 (defun dtk-dict-overlay-at-point ()
   "Return an overlay."
   (let ((overlays (overlays-at (point)))
@@ -905,6 +934,19 @@ For a complete example, see how
 (defcustom dtk-show-dict-numbers nil
   "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
 
+;; The current implementation assumes that, if the "lemma" attribute is present, it is a string representation of one or more Strong's dictionary references in the form, "strong:G1722 strong:G1723 ...", that seems to be used as a lemma attribute value in diatheke-accessible Biblical texts.
+(defun dtk-dict-parse-osis-xml-lemma (x)
+  "Return a list where the first element is the dictionary number and the second element is a string describing the module corresponding to the key."
+  (let ((raw-strings (split-string x "[ \f\t\n\r\v]+")))
+    (mapcar #'(lambda (raw-string)
+		(string-match dtk-dict-osis-xml-lemma-strongs-regexp raw-string)
+		(let ((G-or-H (match-string 1 raw-string))
+		      (strongs-number (match-string 2 raw-string)))
+		  (list strongs-number
+			(pcase G-or-H
+			  ("G" "StrongsGreek")
+			  ("H" "StrongsHebrew")))))
+	    raw-strings)))
 ;;
 ;; dtk major mode
 ;;
