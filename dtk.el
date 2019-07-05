@@ -284,7 +284,9 @@ obtain book, chapter, and verse."
 	 (let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
 	   ;; PARSED-LINES is a list where each member has the form
 	   ;; (:book "John" :chapter 1 :verse 1 :text (...))
-	   (let ((parsed-lines (dtk--parse-osis-xml-lines raw-diatheke-text)))
+	   (let ((parsed-lines (case diatheke-output-format
+				 (:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
+				 (:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
 	     ;; replace diatheke output w/text from parsed-lines
 	     (delete-region (point-min) (point-max))
 	     (dtk-insert-verses parsed-lines))))
@@ -773,7 +775,7 @@ Example:
 						;; If TEXT is already defined and LINE isn't empty, add a space to avoid directly concatenating two words. This assumes diatheke only breaks at puncutation or word boundaries.
                                                 (concat " " line)
                                               (when keep-newlines-p "\n")))))
-                     (plist-put new-verse :text new-text))
+                     (plist-put new-verse :text (list new-text)))
            finally return (cdr (progn
                                  (push new-verse result)
                                  (nreverse result)))))
