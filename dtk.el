@@ -449,21 +449,6 @@ obtain book, chapter, and verse."
 ;;;
 ;;; interact with dtk buffers
 ;;;
-(defcustom dtk-verse-raw-citation-verse-number-regexp
-  ":[[:digit:]]+:"
-  "A regular expression used to match verse number(s).")
-
-;; This parses the specified text using sword-to-org parsing. It
-;; assumes the text specified by START-POINT and END-POINT is raw
-;; diatheke output. After parsing, that text is removed and replaced
-;; with formatted text.
-(defun dtk-compact-region--sto (start-point end-point)
-  "Helper for DTK-BIBLE. START-POINT and END-POINT specify the region under consideration."
-  (let ((verse-plists (dtk-sto--diatheke-parse-text (buffer-substring start-point end-point))))
-    (goto-char start-point)
-    (delete-region start-point end-point)
-    (dtk-insert-verses verse-plists)))
-
 (defun dtk-verse-inserter (book ch verse text new-bk-p new-ch-p)
   "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT. If this function is being invoked in the context of a change to a new book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P, respectively."
   (let ((book-start (point)))
@@ -1058,13 +1043,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   "Keymap for dtk search buffer.")
 
 ;;; navigating (by book, chapter, and verse)
-(defun dtk-at-verse-citation? ()
-  "Return a true value if point is at a verse citation."
-  ;; could be at a compact citation or at a full citation (e.g., 'John 1:1')
-
-  ;; if at a numeral character, assume at a verse or chapter number
-  (or (dtk-number-at-point (point))
-      (dtk-at-verse-full-citation?)))
 
 (defun dtk-at-verse-full-citation? ()
   "Return a true value if point is at a full verse citation."
