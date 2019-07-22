@@ -239,9 +239,12 @@ obtain book, chapter, and verse."
       (condition-case nil
 	  (dtk-bible--insert-using-diatheke final-book chapter-verse final-module output-format)
 	(error
-	 ;; at this point, consider the game up if XML parsing triggered an error;
+	 ;; at this point, consider the game up (most likely XML parsing triggered an error);
 	 ;; attempt to degrade gracefully and try simple/plain format
-	 (dtk-bible--insert-using-diatheke final-book chapter-verse final-module :plain))))
+	 (cond ((eq output-format :plain)
+		(warn "dtk failed relying on plain format"))
+	       (t
+		(dtk-bible--insert-using-diatheke final-book chapter-verse final-module :plain))))))
     )
   )
 
