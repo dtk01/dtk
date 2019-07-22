@@ -735,17 +735,15 @@ representation of a W element:
 
 
 (defun dtk-sto--diatheke-parse-text (text &optional keep-newlines-p)
-  "Parse TEXT line-by-line, returning list of verse plists.
-When KEEP-NEWLINES-P is non-nil, keep blank lines in text.
+  "Parse TEXT line-by-line, returning a list of verse plists. When
+KEEP-NEWLINES-P is non-nil, keep blank lines in text.
 
-Plists are in format (:book \"Genesis\" :chapter 1 :verse 1
-                      :text \"In the beginning...\").
+Each verse plist has the format (:book \"Genesis\" :chapter 1 :verse 1
+                                 :text (\"In the \" ...)).
 
-Example:
-
-\(sword-to-org--diatheke-parse-text
-  (sword-to-org--diatheke-get-text \"ESV\" \"Philemon 1:1-3\")
-  :keep-newlines t)"
+The value for the :text key is a list where each member is either a
+string or a list representing a child element permissible within an
+OSIS XML document."
   (cl-loop with result
            with new-verse
            for line in (s-lines text)
@@ -769,14 +767,13 @@ Example:
 
 (defun dtk-sto--diatheke-parse-line (line)
   "Return plist from LINE.  If LINE is not the beginning of a verse, return nil.
-You generally don't want to use this directly.  Instead use
-`sword-to-org--diatheke-parse-text'.
 
-Plist is in format (:book \"Genesis\" :chapter 1 :verse 1
-                    :text \"In the beginning...\").
+Each verse plist has the format (:book \"Genesis\" :chapter 1 :verse 1
+                                 :text (\"In the \" ...)).
 
-For a complete example, see how
-`sword-to-org--diatheke-parse-text' calls this function."
+The value for the :text key is a list where each member is either a
+string or a list representing a child element permissible within an
+OSIS XML document."
   (if (s-present? line)
       (when (string-match dtk-sto--diatheke-parse-line-regexp line)
         (let ((book (match-string 1 line))
