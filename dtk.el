@@ -118,12 +118,15 @@ thing made that was made."
 ;;; Functions
 ;;;###autoload
 (defun dtk ()
-  "If dtk buffer already exists, move to it. Otherwise, generate the buffer and insert, into the dtk buffer, some of the content from the module. If the module is a Bible module (a member of \"Biblical Texts\"), facilitate the selection of one or more verses."
+  "If the buffer specified by DTK-BUFFER-NAME already exists, move to it. Otherwise, generate the buffer and then provide a prompt to insert content from the current module into the buffer."
   (interactive)
-  (if (not (dtk-biblical-texts))
-      (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts.")
-    (dtk-init)
-    (dtk-go-to)))
+  (cond ((dtk-buffer-exists-p)
+	 (switch-to-buffer dtk-buffer-name))
+	(t
+	 (if (not (dtk-biblical-texts))
+	     (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts.")
+	   (dtk-init)
+	   (dtk-go-to)))))
 
 (defun dtk-dictionary (key module)
   "Set DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
