@@ -123,8 +123,8 @@ thing made that was made."
   (cond ((dtk-buffer-exists-p)
 	 (switch-to-buffer dtk-buffer-name))
 	(t
-	 (if (not (dtk-biblical-texts))
-	     (message "Biblical texts are not presently available via diatheke. Consider installing the desired texts.")
+	 (if (not (dtk-modules-in-category dtk-module-category))
+	     (message "Content is not installed for the selected module category, %s. Install content or change the module category." dtk-module-category)
 	   (dtk-init)
 	   (dtk-go-to)))))
 
