@@ -342,6 +342,25 @@ obtain book, chapter, and verse."
   "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (assoc category (dtk-modulelist)))
 
+(defvar dtk-module-map
+  '(
+    ;; Biblical Texts
+    ("ESV2011" (:osis dtk-parse--esv2011) )
+    ;; Dictionaries
+    ("Dodson" dtk-parse--dodson)
+    ("StrongsGreek" (:plain dtk-parse--strongs))
+    ("StrongsHebrew" (:plain dtk-parse--strongs)))
+  "DTK-MODULE-MAP is a list which maps modules to parsers of diatheke output. Each  list member has the form (module-name module-type parsers). The module category is a string such as 'Biblical Texts', 'Commentaries', or 'Dictionaries'. The corresponding parsers are specified as a plist where, for each entry, the key is keyword for a valid DIATHEKE-OUTPUT-FORMAT value (see the docstring for DTK-DIATHEKE) and the value is a symbol indicating the corresponding parser, a function which accepts a list of lines -- 'raw' diatheke output, presumably in the indicated format.")
+
+(defun dtk-module-map-entry (module-name)
+  "Return the member of DTK-MODULE-MAP describing the module specified by MODULE-NAME."
+  (assoc module-name dtk-module-map))
+
+(defun dtk-module-map-get-parser (module-name format)
+  "Return the parser description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
+  (plist-get (second (dtk-module-map-entry module-name))
+	     format))
+
 (defun dtk-module-names (module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY. If MODULE-CATEGORY is :all, return all module names across all categories."
   (cond ((eq module-category :all)
@@ -603,7 +622,7 @@ representation of a W element:
 	(setf this-chapter chapter))
       ;; Format the remaining verses, anticipating changes in chapter
       ;; number. Assume that book will not change.
-      (cl-loop 
+      (cl-loop
        for verse-plist in verse-plists
        do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
 	    (if (equal chapter this-chapter)
@@ -951,7 +970,7 @@ OSIS XML document."
 			 book)
 		     ;; treat last book differently
 		     dtk-books ; (butlast dtk-books 1)
-		     "\\|")          
+		     "\\|")
 	  "\\)")
   "Facilitate font lock in dtk major mode for books in DTK-BOOKS.")
 
