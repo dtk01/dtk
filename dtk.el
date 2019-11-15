@@ -350,7 +350,7 @@ obtain book, chapter, and verse."
     ("Dodson" dtk-parse--dodson)
     ("StrongsGreek" (:plain dtk-parse--strongs))
     ("StrongsHebrew" (:plain dtk-parse--strongs)))
-  "DTK-MODULE-MAP is a list which maps modules to parsers of diatheke output. Each  list member has the form (module-name module-type parsers). The module category is a string such as 'Biblical Texts', 'Commentaries', or 'Dictionaries'. The corresponding parsers are specified as a plist where, for each entry, the key is keyword for a valid DIATHEKE-OUTPUT-FORMAT value (see the docstring for DTK-DIATHEKE) and the value is a symbol indicating the corresponding parser, a function which accepts a list of lines -- 'raw' diatheke output, presumably in the indicated format.")
+  "DTK-MODULE-MAP is a list which maps modules to parsers of diatheke output. Each list member has the form (module-name module-type parsers). The module category is a string such as 'Biblical Texts', 'Commentaries', or 'Dictionaries'. The corresponding parsers are specified as a plist where, for each entry, the key is keyword for a valid DIATHEKE-OUTPUT-FORMAT value (see the docstring for DTK-DIATHEKE) and the value is a symbol indicating the corresponding parser, a function which accepts a list of lines -- 'raw' diatheke output, presumably in the indicated format.")
 
 (defun dtk-module-map-entry (module-name)
   "Return the member of DTK-MODULE-MAP describing the module specified by MODULE-NAME."
