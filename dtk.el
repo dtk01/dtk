@@ -421,18 +421,21 @@ obtain book, chapter, and verse."
 (defun dtk-select-module ()
   "Prompt the user to select a module."
   (interactive)
-  (let ((module
-         (let ((completion-ignore-case t))
-           (completing-read "Module: "
-                            (dtk-module-names dtk-module-category)
-                            nil
-                            t
-                            nil
-                            nil
-                            '(nil)))))
+  (let ((module (dtk-select-module-of-type "Module: " dtk-module-category)))
     (if module
 	(setf dtk-module module)
       (message "Module not selected"))))
+
+(defun dtk-select-module-of-type (prompt module-category)
+  "Prompt the user to select a module."
+  (let ((completion-ignore-case t))
+    (completing-read prompt
+                     (dtk-module-names module-category)
+                     nil
+                     t
+                     nil
+                     nil
+                     '(nil))))
 
 ;;;
 ;;; dtk buffers
