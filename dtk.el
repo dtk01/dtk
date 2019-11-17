@@ -887,6 +887,20 @@ OSIS XML document."
 ;;
 ;; dictionary: handle dictionary entries and references
 ;;
+
+;;; `dtk-dict-entry': Details for a dictionary entry
+(defstruct dtk-dict-entry
+  key ; the key that one would use to "look up" the entry via diatheke
+  crossrefs			 ; cross-references; a list of strings
+  def ; definition - a plain text string; this may include notes if the parser is unable to distinguish definition and notes
+  notes	     ; NIL or a plain text string
+  word	     ; the dictionary entry itself - a simple string (word or phrase)
+  )
+
+(defvar dtk-dict-current-entry
+  nil
+  "A DTK-DICT-ENTRY structure corresponding to the most recent dictionary lookup. This should be considered the `current` dictionary entry. NIL if a dictionary lookup has not yet occurred.")
+
 (defface dtk-dict-word
   '((t ()))
   "Face for a word or phrase with a corresponding dictionary entry."
