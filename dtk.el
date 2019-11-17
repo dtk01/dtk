@@ -907,6 +907,23 @@ OSIS XML document."
     ("StrongsHebrew" dtk-dict-strongs-key-for-word-at-point))
   "Maps the indicated dictionary module to a function which attempts to determine the key for the word at point. Such a function should return a cons where the car is the dictionary key and the cdr is module directly associated with the key, if such information is available.")
 
+(defun dtk-dict-key-for-word-at-point (dict-module)
+  "Return NIL if unable to suggest a key for the word at point. Otherwise, return a cons where (a) the car is a guess at the dictionary key to use for the word at point and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module."
+  (if (not dict-module)
+      (message "%s" "specify the current dictionary module.")
+    (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
+      (cond (f-entry
+	     (if (listp f-entry)
+		 (eval (rest f-entry))
+	       f-entry))
+	    ;; The specified dictionary module is not yet supported
+	    ((stringp dict-module)
+	     (message "Module %s is not yet supported." dict-module)
+	     nil)
+	    (t
+	     (error "Why are we here?")
+	     nil)))))
+
 (defun dtk-dict-module-sanity-check (requested-module key-associated-module)
   "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key under consideration. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
   ;; At this point, StrongGreek-StrongsHebrew mismatch is the only
