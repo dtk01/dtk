@@ -901,6 +901,26 @@ OSIS XML document."
   nil
   "A DTK-DICT-ENTRY structure corresponding to the most recent dictionary lookup. This should be considered the `current` dictionary entry. NIL if a dictionary lookup has not yet occurred.")
 
+(defvar dtk-dict-key-functions
+  '(("Nave" word-at-point)
+    ("StrongsGreek" dtk-dict-strongs-key-for-word-at-point)
+    ("StrongsHebrew" dtk-dict-strongs-key-for-word-at-point))
+  "Maps the indicated dictionary module to a function which attempts to determine the key for the word at point. Such a function should return a cons where the car is the dictionary key and the cdr is module directly associated with the key, if such information is available.")
+
+(defun dtk-dict-module-sanity-check (requested-module key-associated-module)
+  "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key under consideration. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
+  ;; At this point, StrongGreek-StrongsHebrew mismatch is the only
+  ;; such case
+  (cond ((and (string= dict-module "StrongsGreek")
+	      (equalp key-associated-module "StrongsHebrew"))
+	 (message "Requested StrongsGreek but using StrongsHebrew")
+	 "StrongsHebrew")
+	((and (string= dict-module "StrongsHebrew")
+	      (equalp key-associated-module "StrongsGreek"))
+	 (message "Requested StrongsHebrew but using StrongsGreek")
+	 "StrongsGreek")
+	(t nil)))
+
 (defface dtk-dict-word
   '((t ()))
   "Face for a word or phrase with a corresponding dictionary entry."
