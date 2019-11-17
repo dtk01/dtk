@@ -926,12 +926,15 @@ OSIS XML document."
 
 (defun dtk-dict-module-sanity-check (requested-module key-associated-module)
   "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key under consideration. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
-  ;; At this point, StrongGreek-StrongsHebrew mismatch is the only
-  ;; such case
-  (cond ((and (string= dict-module "StrongsGreek")
-	      (equalp key-associated-module "StrongsHebrew"))
-	 (message "Requested StrongsGreek but using StrongsHebrew")
-	 "StrongsHebrew")
+  (cond ((and (stringp requested-module) (stringp key-associated-module)
+	      (string= requested-module key-associated-module))
+	 requested-module)
+	;; At this point, StrongGreek-StrongsHebrew mismatch is the only
+	;; such case
+	((and (string= dict-module "StrongsGreek")
+		 (equalp key-associated-module "StrongsHebrew"))
+	    (message "Requested StrongsGreek but using StrongsHebrew")
+	    "StrongsHebrew")
 	((and (string= dict-module "StrongsHebrew")
 	      (equalp key-associated-module "StrongsGreek"))
 	 (message "Requested StrongsHebrew but using StrongsGreek")
