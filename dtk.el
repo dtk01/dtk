@@ -969,6 +969,34 @@ OSIS XML document."
 	      (throw 'overlays-loop nil)))))
     dtk-dict-overlay))
 
+(defun dtk-dict-set-current-entry ()
+  "Use word at point to set the current dictionary entry."
+  (let ((dict-module (or (if (equal dtk-module-category "Dictionaries")
+			     dtk-module)
+			 ;dtk-dict-default-module
+			 (dtk-select-module-of-type "First select a module: " "Dictionaries"))))
+    (cond (dict-module
+	   (let ((key-module (dtk-dict-key-for-word-at-point dict-module))
+		 (format :plain))
+	     (cond (key-module
+		    (setf dict-module (dtk-dict-module-sanity-check dict-module (cdr key-module)))
+		    (if dict-module
+			(dtk-dict-set-dtk-dict-current-entry (car key-module)
+							     dict-module
+							     format)))
+		   (t (error "First select a reasonable dictionary module"))
+	       (message "%s" "Unable to find dictionary data."))))
+	  (t (error "First select a dictionary module")))))
+
+(defun dtk-dict-set-dtk-dict-current-entry (key module format)
+  "Set DTK-DICT-CURRENT-ENTRY by performing a lookup with KEY using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup. Returns NIL if unsuccessful. Returns T if successful."
+  (let ((dict-entry (dtk-dict-handle-raw-lines (dtk-dict-raw-lines key module) module format)))
+    (cond (dict-entry
+	   (setf (dtk-dict-entry-key dict-entry) key)
+	   (setf dtk-dict-current-entry dict-entry)
+	   t)
+	  (t nil))))
+
 (defun dtk-dict-show-current-dict ()
   "Show the current dictionary entry."
   (get-buffer-create dtk-dict-buffer-name) ;(dtk-ensure-dict-buffer-exists)
