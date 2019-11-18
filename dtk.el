@@ -137,48 +137,6 @@ thing made that was made."
   ;; $ diatheke -b "StrongsGreek" -k 3
   (process-lines dtk-program "-b" module "-k" key))
 
-(defun dtk-dict-handle-raw-lines (lines module)
-  "Helper function for DTK-DICTIONARY. Handles list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE."
-  ;; The first line begins with an integer succeeded by a colon character. Example:
-  ;; 0358803588:  3588  ho   ho, including the feminine
-  (let ((raw-first-line (pop lines)))
-    ;; trim text up to colon character
-    (setf dtk-dict-word (seq-subseq raw-first-line (1+ (seq-position raw-first-line ?:)))))
-  (while (not (and (string= (elt lines 0) "")
-		   (string= (elt lines 1) "")))
-    (setf dtk-dict-word (concat dtk-dict-word (pop lines))))
-  ;; two empty lines seem to denote boundary between the word/number/etymology and the description/definition/notes
-  (pop lines)
-  (pop lines)
-  ;; set definition/notes component
-  (setf dtk-dict-def "")
-  (while (and (not (and
-		    (>= (length (elt lines 0))
-			4)
-		    (string= (seq-subseq (string-trim (elt lines 0))
-					 0 4)
-			     "see ")))
-	      ;; See note below regarding end of entire diatheke response
-	      (not (and (>= (length (elt lines 0))
-			    (+ 2 (length module)))
-			(string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
-				 module))))
-    (setf dtk-dict-def (concat dtk-dict-def (pop lines))))
-  ;; set cross-references
-  (setf dtk-dict-crossrefs nil)
-  (while (and lines
-	      ;; We expect the entire diatheke response to end with a
-	      ;; line with the parenthesized module name (e.g.,
-	      ;; "(StrongsHebrew)")
-	      (and (>= (length (elt lines 0))
-		       (+ 2 (length module)))
-		   (not (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
-				 module))))
-    ;; FIXME: string may end with module name in parentheses; should clean that up
-    (setf dtk-dict-crossrefs (push (pop lines)
-				   dtk-dict-crossrefs)))
-  t)
-
 (defun dtk-follow ()
   "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
   (interactive)
@@ -906,6 +864,14 @@ OSIS XML document."
     ("StrongsGreek" dtk-dict-strongs-key-for-word-at-point)
     ("StrongsHebrew" dtk-dict-strongs-key-for-word-at-point))
   "Maps the indicated dictionary module to a function which attempts to determine the key for the word at point. Such a function should return a cons where the car is the dictionary key and the cdr is module directly associated with the key, if such information is available.")
+
+(defun dtk-dict-handle-raw-lines (lines module format)
+  "Helper function for DTK-DICTIONARY. Parses content in list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE. Returns NIL if unsuccessful. Returns a dict-entry structure if successful."
+  (let ((parser (dtk-module-map-get-parser module format)))
+    (cond (parser (funcall parser lines))
+	  (t
+	   (message "Missing parser for %s" module)
+	   nil))))
 
 (defun dtk-dict-key-for-word-at-point (dict-module)
   "Return NIL if unable to suggest a key for the word at point. Otherwise, return a cons where (a) the car is a guess at the dictionary key to use for the word at point and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module."
