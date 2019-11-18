@@ -306,8 +306,8 @@ obtain book, chapter, and verse."
     ("ESV2011" (:osis dtk-parse--esv2011) )
     ;; Dictionaries
     ("Dodson" dtk-parse--dodson)
-    ("StrongsGreek" (:plain dtk-parse--strongs))
-    ("StrongsHebrew" (:plain dtk-parse--strongs)))
+    ("StrongsGreek" (:plain dtk-dict-strongs-parse))
+    ("StrongsHebrew" (:plain dtk-dict-strongs-parse)))
   "DTK-MODULE-MAP is a list which maps modules to parsers of diatheke output. Each list member has the form (module-name module-type parsers). The module category is a string such as 'Biblical Texts', 'Commentaries', or 'Dictionaries'. The corresponding parsers are specified as a plist where, for each entry, the key is keyword for a valid DIATHEKE-OUTPUT-FORMAT value (see the docstring for DTK-DIATHEKE) and the value is a symbol indicating the corresponding parser, a function which accepts a list of lines -- 'raw' diatheke output, presumably in the indicated format.")
 
 (defun dtk-module-map-entry (module-name)
@@ -995,6 +995,94 @@ OSIS XML document."
 
 (defcustom dtk-show-dict-numbers nil
   "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
+
+(defconst dtk-dict-strongs-line1-regexp
+  (rx (1+ digit)
+      ":"
+      (1+ space)			; whitespace
+      (group-n 1 (1+ digit))		; strongs-number
+      (1+ space)			; whitespace
+      (group-n 2 (1+ (not (any space)))) ; word
+      )
+  "Match the first line of a Strongs entry.")
+
+(defun dtk-dict-strongs-key-for-word-at-point ()
+  "Return a cons where the car is the dictionary key for a Strongs Greek or Strongs Hebrew dictionary entry and the cdr is an indication of the module corresponding to the key."
+  ;; the key (diatheke) is the dictionary number
+  (let (
+	;; look for 'lemma' text property and corresponding dictionary data
+	;;(lemma-raw (get-text-property (point) 'lemma))
+	(lemma-raw nil)
+	;; currently...
+	(word-dict (get-text-property (point) 'dict)))
+    (cond (lemma-raw
+	   ;; look for pattern like "strong:G1722 ..."
+	   (string-match dtk-dict-osis-xml-lemma-strongs-regexp lemma-raw)
+	   (let ((G-or-H (match-string 1 lemma-raw))
+		 (strongs-number (match-string 2 lemma-raw)))
+	     (cons strongs-number
+		   (pcase G-or-H
+		     ("G" "StrongsGreek")
+		     ("H" "StrongsHebrew")))))
+	  (word-dict
+	   (cons (first word-dict) (second word-dict)))
+	  (t
+	   (message "%s" "No Strong's data at point. Use a Biblical text with Strong's numbers.")
+	   nil))))
+
+(defun dtk-dict-strongs-parse (lines)
+  "Parse either StrongsGreek or StrongsHebrew diatheke output"
+  ;; Diatheke seems to not support structured (XML) output for
+  ;; StrongsGreek nor for StrongsHebrew. The first line begins with an
+  ;; integer succeeded by a colon character. Examples:
+  ;; 0358803588:  3588  ho   ho, including the feminine
+  ;; 0305603056:  3056  logos  log'-os
+  (let ((raw-first-line (pop lines))
+	(dict-crossrefs nil)
+	(dict-def "")
+	(dict-word nil))
+    ;; grab Strong's # and word
+    (string-match dtk-dict-strongs-line1-regexp raw-first-line)
+    (setq dict-word (match-string 2 raw-first-line))
+    ;; remove any additional lines associated with the word
+    (while (not (and (string= (elt lines 0) "")
+  		     (string= (elt lines 1) "")))
+      (pop lines))
+    ;; two empty lines seem to denote boundary between the word/number/etymology and the description/definition/notes
+    (pop lines)
+    (pop lines)
+    ;; set definition/notes component
+    (while (and (not (and
+		      (>= (length (elt lines 0))
+			  4)
+		      (string= (seq-subseq (string-trim (elt lines 0))
+					   0 4)
+			       "see ")))
+		;; See note below regarding end of entire diatheke response
+		(not (and (>= (length (elt lines 0))
+			      (+ 2 (length module)))
+			  (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
+				   module))))
+      (setf dict-def (concat dict-def (pop lines))))
+    ;; set cross-references
+    (while (and lines
+		;; Expect the entire diatheke response to end with a
+		;; line with the parenthesized module name -- for
+		;; example, "(StrongsHebrew)".
+		(and (>= (length (elt lines 0))
+			 (+ 2 (length module)))
+		     (not (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
+				   module))))
+      ;; FIXME: string may end with module name in parentheses; should clean that up
+      (let ((line (pop lines)))
+	(if (consp line) (setf line (first line)))
+	(setf dict-crossrefs (push line
+				   dict-crossrefs))))
+    (make-dtk-dict-entry :crossrefs dict-crossrefs
+			 :def dict-def
+			 :key nil
+			 :notes nil
+			 :word dict-word)))
 
 ;; The current implementation assumes that, if the "lemma" attribute is present, it is a string representation of one or more Strong's dictionary references in the form, "strong:G1722 strong:G1723 ...", that seems to be used as a lemma attribute value in diatheke-accessible Biblical texts.
 (defun dtk-dict-parse-osis-xml-lemma (x)
