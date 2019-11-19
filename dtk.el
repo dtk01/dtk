@@ -85,16 +85,6 @@ thing made that was made."
 (defcustom dtk-module-category nil
   "Module category last selected by the user.")
 
-;;;;; Dictionary settings
-(defcustom dtk-dict-crossrefs nil
-  "Cross-references for the most recent dictionary lookup.")
-
-(defcustom dtk-dict-def nil
-  "Definition and notes for the most recent dictionary lookup.")
-
-(defcustom dtk-dict-word nil
-  "The word (raw string) for the most recent dictionary lookup.")
-
 ;;;;; Internal variables
 (defcustom dtk--recent-book nil
   "Most recently used book when reading user's completion."
