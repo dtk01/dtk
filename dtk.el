@@ -885,14 +885,14 @@ OSIS XML document."
 	   nil))))
 
 (defun dtk-dict-key-for-word-at-point (dict-module)
-  "Return NIL if unable to suggest a key for the word at point. Otherwise, return a cons where (a) the car is a guess at the dictionary key to use for the word at point and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module."
+  "Return a cons where (a) the car is a guess at the dictionary key to use for the word at point (NIL if unable to suggest a key for the word at point) and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module."
   (if (not dict-module)
       (message "%s" "specify the current dictionary module.")
     (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
-      (cond (f-entry
-	     (if (listp f-entry)
-		 (eval (rest f-entry))
-	       f-entry))
+      (cond ((listp f-entry)
+	     (let ((key-module (eval (rest f-entry))))
+	       (or key-module
+		   (cons nil dict-module))))
 	    ;; The specified dictionary module is not yet supported
 	    ((stringp dict-module)
 	     (message "Module %s is not yet supported." dict-module)
@@ -901,11 +901,18 @@ OSIS XML document."
 	     (error "Why are we here?")
 	     nil)))))
 
-(defun dtk-dict-module-sanity-check (requested-module key-associated-module)
+;; Consider the situation where, for some text X,
+;; - a request has been made to look up a dictionary entry using module requested-module
+;; - the attempt to grab a dictionary key yielded the key KEY and the explicitly/directly-associated module KEY-ASSOCIATED-MODULE
+(defun dtk-dict-module-sanity-check (key requested-module key-associated-module)
   "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key under consideration. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
   (cond ((and (stringp requested-module) (stringp key-associated-module)
 	      (string= requested-module key-associated-module))
-	 requested-module)
+	 ;; If KEY is NIL, then it is likely that the text in use does not have STrong's data associated with it
+	 (cond ((not key)
+		(message "Text likely does not have Strong's numbers associated with it. Try a different text.")
+		nil)
+	       (t requested-module)))
 	;; At this point, StrongGreek-StrongsHebrew mismatch is the only
 	;; such case
 	((and (string= dict-module "StrongsGreek")
@@ -971,14 +978,15 @@ OSIS XML document."
     (cond (dict-module
 	   (let ((key-module (dtk-dict-key-for-word-at-point dict-module))
 		 (format :plain))
-	     (cond (key-module
-		    (setf dict-module (dtk-dict-module-sanity-check dict-module (cdr key-module)))
+	     (cond ((not (car key-module))
+		    (message "Unable to find dictionary data for %s." (cdr key-module)))
+		   (t
+		    (setf dict-module (dtk-dict-module-sanity-check (car key-module) dict-module (cdr key-module)))
 		    (if dict-module
 			(dtk-dict-set-dtk-dict-current-entry (car key-module)
 							     dict-module
-							     format)))
-		   (t (error "First select a reasonable dictionary module"))
-	       (message "%s" "Unable to find dictionary data."))))
+							     format)
+		      (message "First select a reasonable dictionary module"))))))
 	  (t (error "First select a dictionary module")))))
 
 (defun dtk-dict-set-dtk-dict-current-entry (key module format)
