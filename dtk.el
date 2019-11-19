@@ -196,7 +196,8 @@ obtain book, chapter, and verse."
   )
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
-  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
+  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character).
+Optional argument MODULE specifies the module to use."
   (unless diatheke-output-format
     (setq diatheke-output-format :plain))
   (let ((module (or module dtk-module)))
@@ -371,7 +372,7 @@ obtain book, chapter, and verse."
       (message "Module not selected"))))
 
 (defun dtk-select-module-of-type (prompt module-category)
-  "Prompt the user to select a module."
+  "Prompt the user to select a module. MODULE-CATEGORY specifies the subset of modules to offer for selection."
   (let ((completion-ignore-case t))
     (completing-read prompt
                      (dtk-module-names module-category)
@@ -863,7 +864,7 @@ OSIS XML document."
   (switch-to-buffer-other-window dtk-dict-buffer-name))
 
 (defun dtk-dict-handle-raw-lines (lines module format)
-  "Helper function for DTK-DICTIONARY. Parses content in list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE. Returns NIL if unsuccessful. Returns a dict-entry structure if successful."
+  "Helper function for DTK-DICTIONARY. Parses content in list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE. Returns NIL if unsuccessful. Returns a dict-entry structure if successful. Argument FORMAT specifies the anticipated format of LINES."
   (let ((parser (dtk-module-map-get-parser module format)))
     (cond (parser (funcall parser lines))
 	  (t
@@ -871,7 +872,7 @@ OSIS XML document."
 	   nil))))
 
 (defun dtk-dict-key-for-word-at-point (dict-module)
-  "Return a cons where (a) the car is a guess at the dictionary key to use for the word at point (NIL if unable to suggest a key for the word at point) and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module."
+  "Return a cons where (a) the car is a guess at the dictionary key to use for the word at point (NIL if unable to suggest a key for the word at point) and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module. DICT-MODULE specifies the dictionary module to be used."
   (if (not dict-module)
       (message "%s" "specify the current dictionary module.")
     (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
