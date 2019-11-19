@@ -865,6 +865,17 @@ OSIS XML document."
     ("StrongsHebrew" dtk-dict-strongs-key-for-word-at-point))
   "Maps the indicated dictionary module to a function which attempts to determine the key for the word at point. Such a function should return a cons where the car is the dictionary key and the cdr is module directly associated with the key, if such information is available.")
 
+(defun dtk-dict ()
+  "Use word at point to set, and then display, the current dictionary entry."
+  (interactive)
+  (dtk-dict-set-current-entry)
+  (dtk-dict-populate-dtk-dict-buffer)
+  ;; The most likely use case for DTK-DICT is invocation while reading
+  ;; a passage. In this case, the most likely desired behavior is to
+  ;; open the dtk-dict buffer alongside the buffer containing the
+  ;; passage being read.
+  (switch-to-buffer-other-window dtk-dict-buffer-name))
+
 (defun dtk-dict-handle-raw-lines (lines module format)
   "Helper function for DTK-DICTIONARY. Parses content in list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE. Returns NIL if unsuccessful. Returns a dict-entry structure if successful."
   (let ((parser (dtk-module-map-get-parser module format)))
