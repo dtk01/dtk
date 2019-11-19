@@ -946,6 +946,22 @@ OSIS XML document."
 	      (throw 'overlays-loop nil)))))
     dtk-dict-overlay))
 
+(defun dtk-dict-populate-dtk-dict-buffer ()
+  "Populate the dtk-dict-buffer buffer with the current dictionary entry."
+  (get-buffer-create dtk-dict-buffer-name)
+  ;;(dtk-clear-dict-buffer)
+  (with-current-buffer dtk-dict-buffer-name
+    (delete-region (progn (goto-char (point-min)) (point))
+		   (progn (goto-char (point-max)) (point)))
+    (dtk-dict-mode)
+    (when dtk-dict-current-entry
+      (insert (dtk-dict-entry-word dtk-dict-current-entry)
+	      #xa
+	      (dtk-dict-entry-def dtk-dict-current-entry)
+	      #xa)
+      (mapc #'(lambda (cr) (insert cr #xa))
+	    (dtk-dict-entry-crossrefs dtk-dict-current-entry)))))
+
 (defun dtk-dict-set-current-entry ()
   "Use word at point to set the current dictionary entry."
   (let ((dict-module (or (if (equal dtk-module-category "Dictionaries")
