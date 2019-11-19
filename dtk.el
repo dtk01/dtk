@@ -988,20 +988,6 @@ OSIS XML document."
 	   t)
 	  (t nil))))
 
-(defun dtk-dict-show-current-dict ()
-  "Show the current dictionary entry."
-  (get-buffer-create dtk-dict-buffer-name) ;(dtk-ensure-dict-buffer-exists)
-  ;;(dtk-clear-dict-buffer)
-  (with-current-buffer dtk-dict-buffer-name
-    (delete-region (progn (goto-char (point-min)) (point))
-		   (progn (goto-char (point-max)) (point))))
-  (switch-to-buffer dtk-dict-buffer-name) ;(dtk-switch-to-dict-buffer)
-  (dtk-dict-mode)
-  ;; insert dtk-dict-content
-  (insert dtk-dict-word #xa dtk-dict-def #xa)
-  (mapc #'(lambda (cr) (insert cr #xa))
-	dtk-dict-crossrefs))
-
 (defun dtk-show-dict-entry ()
   "Show Strong's dictionary data for word at point, if possible."
   (interactive)
