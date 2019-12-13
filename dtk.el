@@ -892,7 +892,7 @@ OSIS XML document."
 ;; - a request has been made to look up a dictionary entry using module requested-module
 ;; - the attempt to grab a dictionary key yielded the key KEY and the explicitly/directly-associated module KEY-ASSOCIATED-MODULE
 (defun dtk-dict-module-sanity-check (key requested-module key-associated-module)
-  "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key under consideration. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
+  "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key KEY. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
   (cond ((and (stringp requested-module) (stringp key-associated-module)
 	      (string= requested-module key-associated-module))
 	 ;; If KEY is NIL, then it is likely that the text in use does not have STrong's data associated with it
