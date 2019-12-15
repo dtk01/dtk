@@ -85,16 +85,6 @@ thing made that was made."
 (defcustom dtk-module-category nil
   "Module category last selected by the user.")
 
-;;;;; Dictionary settings
-(defcustom dtk-dict-crossrefs nil
-  "Cross-references for the most recent dictionary lookup.")
-
-(defcustom dtk-dict-def nil
-  "Definition and notes for the most recent dictionary lookup.")
-
-(defcustom dtk-dict-word nil
-  "The word (raw string) for the most recent dictionary lookup.")
-
 ;;;;; Internal variables
 (defcustom dtk--recent-book nil
   "Most recently used book when reading user's completion."
@@ -128,56 +118,10 @@ thing made that was made."
 	   (dtk-init)
 	   (dtk-go-to)))))
 
-(defun dtk-dictionary (key module)
-  "Set DTK-DICT-WORD, DTK-DICT-DEF, and DTK-DICT-CROSSREFS using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup."
-  (dtk-dict-handle-raw-lines (dtk-dict-raw-lines key module) module))
-
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
   (process-lines dtk-program "-b" module "-k" key))
-
-(defun dtk-dict-handle-raw-lines (lines module)
-  "Helper function for DTK-DICTIONARY. Handles list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE."
-  ;; The first line begins with an integer succeeded by a colon character. Example:
-  ;; 0358803588:  3588  ho   ho, including the feminine
-  (let ((raw-first-line (pop lines)))
-    ;; trim text up to colon character
-    (setf dtk-dict-word (seq-subseq raw-first-line (1+ (seq-position raw-first-line ?:)))))
-  (while (not (and (string= (elt lines 0) "")
-		   (string= (elt lines 1) "")))
-    (setf dtk-dict-word (concat dtk-dict-word (pop lines))))
-  ;; two empty lines seem to denote boundary between the word/number/etymology and the description/definition/notes
-  (pop lines)
-  (pop lines)
-  ;; set definition/notes component
-  (setf dtk-dict-def "")
-  (while (and (not (and
-		    (>= (length (elt lines 0))
-			4)
-		    (string= (seq-subseq (string-trim (elt lines 0))
-					 0 4)
-			     "see ")))
-	      ;; See note below regarding end of entire diatheke response
-	      (not (and (>= (length (elt lines 0))
-			    (+ 2 (length module)))
-			(string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
-				 module))))
-    (setf dtk-dict-def (concat dtk-dict-def (pop lines))))
-  ;; set cross-references
-  (setf dtk-dict-crossrefs nil)
-  (while (and lines
-	      ;; We expect the entire diatheke response to end with a
-	      ;; line with the parenthesized module name (e.g.,
-	      ;; "(StrongsHebrew)")
-	      (and (>= (length (elt lines 0))
-		       (+ 2 (length module)))
-		   (not (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
-				 module))))
-    ;; FIXME: string may end with module name in parentheses; should clean that up
-    (setf dtk-dict-crossrefs (push (pop lines)
-				   dtk-dict-crossrefs)))
-  t)
 
 (defun dtk-follow ()
   "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
@@ -252,7 +196,8 @@ obtain book, chapter, and verse."
   )
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
-  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character)."
+  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character).
+Optional argument MODULE specifies the module to use."
   (unless diatheke-output-format
     (setq diatheke-output-format :plain))
   (let ((module (or module dtk-module)))
@@ -342,14 +287,17 @@ obtain book, chapter, and verse."
   "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (assoc category (dtk-modulelist)))
 
+(defvar dtk-module-last-selection nil
+  "A plist specifying the last selection of a module by module category.")
+
 (defvar dtk-module-map
   '(
     ;; Biblical Texts
     ("ESV2011" (:osis dtk-parse--esv2011) )
     ;; Dictionaries
     ("Dodson" dtk-parse--dodson)
-    ("StrongsGreek" (:plain dtk-parse--strongs))
-    ("StrongsHebrew" (:plain dtk-parse--strongs)))
+    ("StrongsGreek" (:plain dtk-dict-strongs-parse))
+    ("StrongsHebrew" (:plain dtk-dict-strongs-parse)))
   "DTK-MODULE-MAP is a list which maps modules to parsers of diatheke output. Each list member has the form (module-name module-type parsers). The module category is a string such as 'Biblical Texts', 'Commentaries', or 'Dictionaries'. The corresponding parsers are specified as a plist where, for each entry, the key is keyword for a valid DIATHEKE-OUTPUT-FORMAT value (see the docstring for DTK-DIATHEKE) and the value is a symbol indicating the corresponding parser, a function which accepts a list of lines -- 'raw' diatheke output, presumably in the indicated format.")
 
 (defun dtk-module-map-entry (module-name)
@@ -376,6 +324,10 @@ obtain book, chapter, and verse."
 		     (elt shortname-description 0))
 		 (cdr (assoc (or module-category dtk-module-category)
 			     (dtk-modulelist)))))))
+
+(defun dtk-module-remember-selection ()
+  "Remember the module last selected by the user."
+  (setq dtk-module-last-selection (lax-plist-put dtk-module-last-selection dtk-module-category dtk-module)))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
@@ -423,11 +375,13 @@ obtain book, chapter, and verse."
   (interactive)
   (let ((module (dtk-select-module-of-type "Module: " dtk-module-category)))
     (if module
-	(setf dtk-module module)
+	(progn
+	  (setf dtk-module module)
+	  (dtk-module-remember-selection))
       (message "Module not selected"))))
 
 (defun dtk-select-module-of-type (prompt module-category)
-  "Prompt the user to select a module."
+  "Prompt the user to select a module. MODULE-CATEGORY specifies the subset of modules to offer for selection."
   (let ((completion-ignore-case t))
     (completing-read prompt
                      (dtk-module-names module-category)
@@ -491,11 +445,13 @@ obtain book, chapter, and verse."
 				 chapter-start
 			       book-start)
 			     (point)
-			     (list 'book book 'chapter chapter)))))
+			     (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
   (when verse
     (let ((verse-start (point)))
       (insert (int-to-string verse) #x20)
-      (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))))
+      (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))
+      ;; fontify verse numbers explicitly
+      (add-text-properties verse-start (point) '(font-lock-face dtk-verse-number))))
   (when text
     (let ((text-start (point)))
       (funcall dtk-verse-text-inserter text)
@@ -887,6 +843,87 @@ OSIS XML document."
 ;;
 ;; dictionary: handle dictionary entries and references
 ;;
+
+;;; `dtk-dict-entry': Details for a dictionary entry
+(defstruct dtk-dict-entry
+  key ; the key that one would use to "look up" the entry via diatheke
+  crossrefs			 ; cross-references; a list of strings
+  def ; definition - a plain text string; this may include notes if the parser is unable to distinguish definition and notes
+  notes	     ; NIL or a plain text string
+  word	     ; the dictionary entry itself - a simple string (word or phrase)
+  )
+
+(defvar dtk-dict-current-entry
+  nil
+  "A DTK-DICT-ENTRY structure corresponding to the most recent dictionary lookup. This should be considered the `current` dictionary entry. NIL if a dictionary lookup has not yet occurred.")
+
+(defvar dtk-dict-key-functions
+  '(("Nave" word-at-point)
+    ("StrongsGreek" dtk-dict-strongs-key-for-word-at-point)
+    ("StrongsHebrew" dtk-dict-strongs-key-for-word-at-point))
+  "Maps the indicated dictionary module to a function which attempts to determine the key for the word at point. Such a function should return a cons where the car is the dictionary key and the cdr is module directly associated with the key, if such information is available.")
+
+;;;###autoload
+(defun dtk-dict ()
+  "Use word at point to set, and then display, the current dictionary entry."
+  (interactive)
+  (dtk-dict-set-current-entry)
+  (dtk-dict-populate-dtk-dict-buffer)
+  ;; The most likely use case for DTK-DICT is invocation while reading
+  ;; a passage. In this case, the most likely desired behavior is to
+  ;; open the dtk-dict buffer alongside the buffer containing the
+  ;; passage being read.
+  (switch-to-buffer-other-window dtk-dict-buffer-name))
+
+(defun dtk-dict-handle-raw-lines (lines module format)
+  "Helper function for DTK-DICTIONARY. Parses content in list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE. Returns NIL if unsuccessful. Returns a dict-entry structure if successful. Argument FORMAT specifies the anticipated format of LINES."
+  (let ((parser (dtk-module-map-get-parser module format)))
+    (cond (parser (funcall parser lines))
+	  (t
+	   (message "Missing parser for %s" module)
+	   nil))))
+
+(defun dtk-dict-key-for-word-at-point (dict-module)
+  "Return a cons where (a) the car is a guess at the dictionary key to use for the word at point (NIL if unable to suggest a key for the word at point) and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module. DICT-MODULE specifies the dictionary module to be used."
+  (if (not dict-module)
+      (message "%s" "specify the current dictionary module.")
+    (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
+      (cond ((listp f-entry)
+	     (let ((key-module (eval (rest f-entry))))
+	       (or key-module
+		   (cons nil dict-module))))
+	    ;; The specified dictionary module is not yet supported
+	    ((stringp dict-module)
+	     (message "Module %s is not yet supported." dict-module)
+	     nil)
+	    (t
+	     (error "Why are we here?")
+	     nil)))))
+
+;; Consider the situation where, for some text X,
+;; - a request has been made to look up a dictionary entry using module requested-module
+;; - the attempt to grab a dictionary key yielded the key KEY and the explicitly/directly-associated module KEY-ASSOCIATED-MODULE
+(defun dtk-dict-module-sanity-check (key requested-module key-associated-module)
+  "Look for nonsensical dictionary module situations. REQUESTED-MODULE is the module requested for the key KEY. KEY-ASSOCIATED-MODULE is a module known to be sane for the key under consideration. Return the optimal module choice when possible. If REQUESTED-MODULE is clearly inappropriate and a sane module choice is not immediately obvious, return NIL."
+  (cond ((and (stringp requested-module) (stringp key-associated-module)
+	      (string= requested-module key-associated-module))
+	 ;; If KEY is NIL, then it is likely that the text in use does not have STrong's data associated with it
+	 (cond ((not key)
+		(message "Text likely does not have Strong's numbers associated with it. Try a different text.")
+		nil)
+	       (t requested-module)))
+	;; At this point, StrongGreek-StrongsHebrew mismatch is the only
+	;; such case
+	((and (string= dict-module "StrongsGreek")
+		 (equalp key-associated-module "StrongsHebrew"))
+	    (message "Requested StrongsGreek but using StrongsHebrew")
+	    "StrongsHebrew")
+	((and (string= dict-module "StrongsHebrew")
+	      (equalp key-associated-module "StrongsGreek"))
+	 (message "Requested StrongsHebrew but using StrongsGreek")
+	 "StrongsGreek")
+	(t nil)))
+
 (defface dtk-dict-word
   '((t ()))
   "Face for a word or phrase with a corresponding dictionary entry."
@@ -915,38 +952,141 @@ OSIS XML document."
 	      (throw 'overlays-loop nil)))))
     dtk-dict-overlay))
 
-(defun dtk-dict-show-current-dict ()
-  "Show the current dictionary entry."
-  (get-buffer-create dtk-dict-buffer-name) ;(dtk-ensure-dict-buffer-exists)
+(defun dtk-dict-populate-dtk-dict-buffer ()
+  "Populate the dtk-dict-buffer buffer with the current dictionary entry."
+  (get-buffer-create dtk-dict-buffer-name)
   ;;(dtk-clear-dict-buffer)
   (with-current-buffer dtk-dict-buffer-name
     (delete-region (progn (goto-char (point-min)) (point))
-		   (progn (goto-char (point-max)) (point))))
-  (switch-to-buffer dtk-dict-buffer-name) ;(dtk-switch-to-dict-buffer)
-  (dtk-dict-mode)
-  ;; insert dtk-dict-content
-  (insert dtk-dict-word #xa dtk-dict-def #xa)
-  (mapc #'(lambda (cr) (insert cr #xa))
-	dtk-dict-crossrefs))
+		   (progn (goto-char (point-max)) (point)))
+    (dtk-dict-mode)
+    (when dtk-dict-current-entry
+      (insert (dtk-dict-entry-word dtk-dict-current-entry)
+	      #xa
+	      (dtk-dict-entry-def dtk-dict-current-entry)
+	      #xa)
+      (mapc #'(lambda (cr) (insert cr #xa))
+	    (dtk-dict-entry-crossrefs dtk-dict-current-entry)))))
 
-(defun dtk-show-dict-entry ()
-  "Show Strong's dictionary data for word at point, if possible."
-  (interactive)
-  (let ((dtk-dict-overlay (dtk-dict-overlay-at-point)))
-    (if dtk-dict-overlay
-	(progn
-	  ;; set dict data
-	  (let ((dtk-dict-n (overlay-get dtk-dict-overlay 'dtk-dict-number))
-		(module-spec (overlay-get dtk-dict-overlay 'dtk-dict-module-spec)))
-	    (dtk-dictionary dtk-dict-n
-			    (pcase module-spec
-			      ("G" "StrongsGreek")
-			      ("H" "StrongsHebrew"))))
-	  (dtk-dict-show-current-dict))
-      (message "%s" "No dictionary data"))))
+(defun dtk-dict-set-current-entry ()
+  "Use word at point to set the current dictionary entry."
+  (let ((dict-module (or (if (equal dtk-module-category "Dictionaries")
+			     dtk-module)
+			 (lax-plist-get dtk-module-last-selection "Dictionaries")
+			 (dtk-select-module-of-type "First select a module: " "Dictionaries"))))
+    (cond (dict-module
+	   (let ((key-module (dtk-dict-key-for-word-at-point dict-module))
+		 (format :plain))
+	     (cond ((not (car key-module))
+		    (message "Unable to find dictionary data for %s." (cdr key-module)))
+		   (t
+		    (setf dict-module (dtk-dict-module-sanity-check (car key-module) dict-module (cdr key-module)))
+		    (if dict-module
+			(dtk-dict-set-dtk-dict-current-entry (car key-module)
+							     dict-module
+							     format)
+		      (message "First select a reasonable dictionary module"))))))
+	  (t (error "First select a dictionary module")))))
+
+(defun dtk-dict-set-dtk-dict-current-entry (key module format)
+  "Set DTK-DICT-CURRENT-ENTRY by performing a lookup with KEY using the dictionary module MODULE. KEY is a string, the query key for the dictionary lookup. Returns NIL if unsuccessful. Returns T if successful."
+  (let ((dict-entry (dtk-dict-handle-raw-lines (dtk-dict-raw-lines key module) module format)))
+    (cond (dict-entry
+	   (setf (dtk-dict-entry-key dict-entry) key)
+	   (setf dtk-dict-current-entry dict-entry)
+	   t)
+	  (t nil))))
 
 (defcustom dtk-show-dict-numbers nil
   "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
+
+(defconst dtk-dict-strongs-line1-regexp
+  (rx (1+ digit)
+      ":"
+      (1+ space)			; whitespace
+      (group-n 1 (1+ digit))		; strongs-number
+      (1+ space)			; whitespace
+      (group-n 2 (1+ (not (any space)))) ; word
+      )
+  "Match the first line of a Strongs entry.")
+
+(defun dtk-dict-strongs-key-for-word-at-point ()
+  "Return a cons where the car is the dictionary key for a Strongs Greek or Strongs Hebrew dictionary entry and the cdr is an indication of the module corresponding to the key."
+  ;; the key (diatheke) is the dictionary number
+  (let (
+	;; look for 'lemma' text property and corresponding dictionary data
+	;;(lemma-raw (get-text-property (point) 'lemma))
+	(lemma-raw nil)
+	;; currently...
+	(word-dict (get-text-property (point) 'dict)))
+    (cond (lemma-raw
+	   ;; look for pattern like "strong:G1722 ..."
+	   (string-match dtk-dict-osis-xml-lemma-strongs-regexp lemma-raw)
+	   (let ((G-or-H (match-string 1 lemma-raw))
+		 (strongs-number (match-string 2 lemma-raw)))
+	     (cons strongs-number
+		   (pcase G-or-H
+		     ("G" "StrongsGreek")
+		     ("H" "StrongsHebrew")))))
+	  (word-dict
+	   (cons (first word-dict) (second word-dict)))
+	  (t
+	   (message "%s" "No Strong's data at point. Use a Biblical text with Strong's numbers.")
+	   nil))))
+
+(defun dtk-dict-strongs-parse (lines)
+  "Parse either StrongsGreek or StrongsHebrew diatheke output"
+  ;; Diatheke seems to not support structured (XML) output for
+  ;; StrongsGreek nor for StrongsHebrew. The first line begins with an
+  ;; integer succeeded by a colon character. Examples:
+  ;; 0358803588:  3588  ho   ho, including the feminine
+  ;; 0305603056:  3056  logos  log'-os
+  (let ((raw-first-line (pop lines))
+	(dict-crossrefs nil)
+	(dict-def "")
+	(dict-word nil))
+    ;; grab Strong's # and word
+    (string-match dtk-dict-strongs-line1-regexp raw-first-line)
+    (setq dict-word (match-string 2 raw-first-line))
+    ;; remove any additional lines associated with the word
+    (while (not (and (string= (elt lines 0) "")
+  		     (string= (elt lines 1) "")))
+      (pop lines))
+    ;; two empty lines seem to denote boundary between the word/number/etymology and the description/definition/notes
+    (pop lines)
+    (pop lines)
+    ;; set definition/notes component
+    (while (and (not (and
+		      (>= (length (elt lines 0))
+			  4)
+		      (string= (seq-subseq (string-trim (elt lines 0))
+					   0 4)
+			       "see ")))
+		;; See note below regarding end of entire diatheke response
+		(not (and (>= (length (elt lines 0))
+			      (+ 2 (length module)))
+			  (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
+				   module))))
+      (setf dict-def (concat dict-def (pop lines))))
+    ;; set cross-references
+    (while (and lines
+		;; Expect the entire diatheke response to end with a
+		;; line with the parenthesized module name -- for
+		;; example, "(StrongsHebrew)".
+		(and (>= (length (elt lines 0))
+			 (+ 2 (length module)))
+		     (not (string= (seq-subseq (elt lines 0) 1 (1+ (length module)))
+				   module))))
+      ;; FIXME: string may end with module name in parentheses; should clean that up
+      (let ((line (pop lines)))
+	(if (consp line) (setf line (first line)))
+	(setf dict-crossrefs (push line
+				   dict-crossrefs))))
+    (make-dtk-dict-entry :crossrefs dict-crossrefs
+			 :def dict-def
+			 :key nil
+			 :notes nil
+			 :word dict-word)))
 
 ;; The current implementation assumes that, if the "lemma" attribute is present, it is a string representation of one or more Strong's dictionary references in the form, "strong:G1722 strong:G1723 ...", that seems to be used as a lemma attribute value in diatheke-accessible Biblical texts.
 (defun dtk-dict-parse-osis-xml-lemma (x)
@@ -965,8 +1105,7 @@ OSIS XML document."
 ;; dtk major mode
 ;;
 
-;;
-;; font lock
+;; The dtk major mode uses font-lock-face for some text and also uses the normal Font Lock machinery.
 (defcustom dtk-books-font-lock-variable-name-face-string
   (concat "^\\("
 	  (mapconcat #'(lambda (book)
@@ -985,11 +1124,6 @@ OSIS XML document."
 	 ;;(find-face 'dtk-full-book)
 	 font-lock-variable-name-face  ; Foreground: LightGoldenrod
 	 )
-   ;; chapter and verse numbers
-   (cons "\\([0-9]*\\)"
-	 ;;(find-face 'dtk-full-verse-number)
-	 font-lock-constant-face	; Foreground: Aquamarine
-	 )
    ;; translation/source
    (list dtk-module))
   "List of font lock keywords for dtk major mode.")
@@ -999,36 +1133,26 @@ OSIS XML document."
   "Face for book component of a full citation."
   :group 'dtk-faces)
 
-(defface dtk-full-verse-number
-  '((t (:background nil :height 1.2)))
-  "Face for marking verse number component of a full citation."
+(defface dtk-chapter-number
+  '((t (:inherit font-lock-constant-face)))
+  "Face for marking chapter number."
   :group 'dtk-faces)
 
-(defface dtk-compact-verse-number
-  '((t (:background nil :height 0.8)))
+(defface dtk-verse-number
+  '((t (:inherit font-lock-constant-face)))
   "Face for marking verse number."
   :group 'dtk-faces)
-
-(defun dtk-make-overlay-verse-number (beg end)
-  "Make an overlay for the verse number beginning at point BEG and ending at point END."
-  (let ((ov (make-overlay beg end
-			  (get-buffer dtk-buffer-name)
-			  t t)))
-    (overlay-put ov 'face 'dtk-verse-number)
-    (overlay-put ov 'priority 100)
-    (overlay-put ov 'dtk-overlay t)
-    ov))
 
 (defvar dtk-mode-map
   (let ((map (make-keymap)))
     (define-key map "c" 'dtk-clear-dtk-buffer)
     (define-key map "b" 'dtk-backward-verse)
+    (define-key map "d" 'dtk-dict)
     (define-key map "g" 'dtk-go-to)
     (define-key map "f" 'dtk-forward-verse)
     (define-key map "m" 'dtk-select-module)
     (define-key map "M" 'dtk-select-module-category)
     (define-key map "s" 'dtk-search)
-    (define-key map "S" 'dtk-show-dict-entry)
     (define-key map "q" 'dtk-quit)
     (define-key map "x" 'dtk-follow)
     (define-key map (kbd "C-M-b") 'dtk-backward-chapter)
@@ -1046,14 +1170,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (make-local-variable 'paragraph-separate)
   (setq word-wrap dtk-word-wrap)
   )
-
-(defun dtk-to-verse-number-font (beg end)
-  "Make an overlay for the verse number beginning at point BEG and ending at point END. Modify the text properties of the verse number to enhance readability."
-  (with-current-buffer dtk-buffer-name
-    (dtk-make-overlay-verse-number beg end)
-    (add-text-properties
-     beg end
-     '(display (raise 0.2)))))
 
 ;;;###autoload
 (define-derived-mode dtk-search-mode dtk-mode "dtk-search"
