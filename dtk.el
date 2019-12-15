@@ -287,6 +287,9 @@ Optional argument MODULE specifies the module to use."
   "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (assoc category (dtk-modulelist)))
 
+(defvar dtk-module-last-selection nil
+  "A plist specifying the last selection of a module by module category.")
+
 (defvar dtk-module-map
   '(
     ;; Biblical Texts
@@ -321,6 +324,10 @@ Optional argument MODULE specifies the module to use."
 		     (elt shortname-description 0))
 		 (cdr (assoc (or module-category dtk-module-category)
 			     (dtk-modulelist)))))))
+
+(defun dtk-module-remember-selection ()
+  "Remember the module last selected by the user."
+  (setq dtk-module-last-selection (lax-plist-put dtk-module-last-selection dtk-module-category dtk-module)))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
@@ -368,7 +375,9 @@ Optional argument MODULE specifies the module to use."
   (interactive)
   (let ((module (dtk-select-module-of-type "Module: " dtk-module-category)))
     (if module
-	(setf dtk-module module)
+	(progn
+	  (setf dtk-module module)
+	  (dtk-module-remember-selection))
       (message "Module not selected"))))
 
 (defun dtk-select-module-of-type (prompt module-category)
