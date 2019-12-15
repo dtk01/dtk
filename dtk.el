@@ -1146,6 +1146,7 @@ OSIS XML document."
   (let ((map (make-keymap)))
     (define-key map "c" 'dtk-clear-dtk-buffer)
     (define-key map "b" 'dtk-backward-verse)
+    (define-key map "d" 'dtk-dict)
     (define-key map "g" 'dtk-go-to)
     (define-key map "f" 'dtk-forward-verse)
     (define-key map "m" 'dtk-select-module)
