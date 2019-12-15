@@ -971,7 +971,7 @@ OSIS XML document."
   "Use word at point to set the current dictionary entry."
   (let ((dict-module (or (if (equal dtk-module-category "Dictionaries")
 			     dtk-module)
-			 ;dtk-dict-default-module
+			 (lax-plist-get dtk-module-last-selection "Dictionaries")
 			 (dtk-select-module-of-type "First select a module: " "Dictionaries"))))
     (cond (dict-module
 	   (let ((key-module (dtk-dict-key-for-word-at-point dict-module))
