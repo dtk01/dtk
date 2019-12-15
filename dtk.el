@@ -436,11 +436,13 @@ Optional argument MODULE specifies the module to use."
 				 chapter-start
 			       book-start)
 			     (point)
-			     (list 'book book 'chapter chapter)))))
+			     (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
   (when verse
     (let ((verse-start (point)))
       (insert (int-to-string verse) #x20)
-      (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))))
+      (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))
+      ;; fontify verse numbers explicitly
+      (add-text-properties verse-start (point) '(font-lock-face dtk-verse-number))))
   (when text
     (let ((text-start (point)))
       (funcall dtk-verse-text-inserter text)
@@ -1109,8 +1111,7 @@ OSIS XML document."
 ;; dtk major mode
 ;;
 
-;;
-;; font lock
+;; The dtk major mode uses font-lock-face for some text and also uses the normal Font Lock machinery.
 (defcustom dtk-books-font-lock-variable-name-face-string
   (concat "^\\("
 	  (mapconcat #'(lambda (book)
@@ -1129,11 +1130,6 @@ OSIS XML document."
 	 ;;(find-face 'dtk-full-book)
 	 font-lock-variable-name-face  ; Foreground: LightGoldenrod
 	 )
-   ;; chapter and verse numbers
-   (cons "\\([0-9]*\\)"
-	 ;;(find-face 'dtk-full-verse-number)
-	 font-lock-constant-face	; Foreground: Aquamarine
-	 )
    ;; translation/source
    (list dtk-module))
   "List of font lock keywords for dtk major mode.")
@@ -1143,13 +1139,13 @@ OSIS XML document."
   "Face for book component of a full citation."
   :group 'dtk-faces)
 
-(defface dtk-full-verse-number
-  '((t (:background nil :height 1.2)))
-  "Face for marking verse number component of a full citation."
+(defface dtk-chapter-number
+  '((t (:inherit font-lock-constant-face)))
+  "Face for marking chapter number."
   :group 'dtk-faces)
 
-(defface dtk-compact-verse-number
-  '((t (:background nil :height 0.8)))
+(defface dtk-verse-number
+  '((t (:inherit font-lock-constant-face)))
   "Face for marking verse number."
   :group 'dtk-faces)
 
