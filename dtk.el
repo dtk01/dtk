@@ -863,6 +863,7 @@ OSIS XML document."
     ("StrongsHebrew" dtk-dict-strongs-key-for-word-at-point))
   "Maps the indicated dictionary module to a function which attempts to determine the key for the word at point. Such a function should return a cons where the car is the dictionary key and the cdr is module directly associated with the key, if such information is available.")
 
+;;;###autoload
 (defun dtk-dict ()
   "Use word at point to set, and then display, the current dictionary entry."
   (interactive)
