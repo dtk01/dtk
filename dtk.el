@@ -996,22 +996,6 @@ OSIS XML document."
 	   t)
 	  (t nil))))
 
-(defun dtk-show-dict-entry ()
-  "Show Strong's dictionary data for word at point, if possible."
-  (interactive)
-  (let ((dtk-dict-overlay (dtk-dict-overlay-at-point)))
-    (if dtk-dict-overlay
-	(progn
-	  ;; set dict data
-	  (let ((dtk-dict-n (overlay-get dtk-dict-overlay 'dtk-dict-number))
-		(module-spec (overlay-get dtk-dict-overlay 'dtk-dict-module-spec)))
-	    (dtk-dictionary dtk-dict-n
-			    (pcase module-spec
-			      ("G" "StrongsGreek")
-			      ("H" "StrongsHebrew"))))
-	  (dtk-dict-show-current-dict))
-      (message "%s" "No dictionary data"))))
-
 (defcustom dtk-show-dict-numbers nil
   "If true, show dictionary numbers, if available. Otherwise, ensure dictionary information is not visible.")
 
@@ -1167,7 +1151,6 @@ OSIS XML document."
     (define-key map "m" 'dtk-select-module)
     (define-key map "M" 'dtk-select-module-category)
     (define-key map "s" 'dtk-search)
-    (define-key map "S" 'dtk-show-dict-entry)
     (define-key map "q" 'dtk-quit)
     (define-key map "x" 'dtk-follow)
     (define-key map (kbd "C-M-b") 'dtk-backward-chapter)
