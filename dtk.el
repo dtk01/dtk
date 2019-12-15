@@ -1149,16 +1149,6 @@ OSIS XML document."
   "Face for marking verse number."
   :group 'dtk-faces)
 
-(defun dtk-make-overlay-verse-number (beg end)
-  "Make an overlay for the verse number beginning at point BEG and ending at point END."
-  (let ((ov (make-overlay beg end
-			  (get-buffer dtk-buffer-name)
-			  t t)))
-    (overlay-put ov 'face 'dtk-verse-number)
-    (overlay-put ov 'priority 100)
-    (overlay-put ov 'dtk-overlay t)
-    ov))
-
 (defvar dtk-mode-map
   (let ((map (make-keymap)))
     (define-key map "c" 'dtk-clear-dtk-buffer)
@@ -1186,14 +1176,6 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   (make-local-variable 'paragraph-separate)
   (setq word-wrap dtk-word-wrap)
   )
-
-(defun dtk-to-verse-number-font (beg end)
-  "Make an overlay for the verse number beginning at point BEG and ending at point END. Modify the text properties of the verse number to enhance readability."
-  (with-current-buffer dtk-buffer-name
-    (dtk-make-overlay-verse-number beg end)
-    (add-text-properties
-     beg end
-     '(display (raise 0.2)))))
 
 ;;;###autoload
 (define-derived-mode dtk-search-mode dtk-mode "dtk-search"
