@@ -118,6 +118,42 @@ thing made that was made."
 	   (dtk-init)
 	   (dtk-go-to)))))
 
+(defun dtk-check-for-text-obesity ()
+  "Intended for use with handling incoming text from diatheke invocation. If text is of a length likely to trigger a substantial delay due to parsing, confirm the intent of the user. Return a true value if text length is clearly not excessive or if the user has explicitly indicated a desire to process a text of substantial length."
+  (let ((sane-raw-length 100000))
+    (or (< (point) sane-raw-length)
+	(if (y-or-n-p "That's a large chunk of text. Are you sure you want to proceed? ")
+	    t
+	  (progn
+	    (message "Okay")
+	    nil)))))
+
+(defun dtk-diatheke (query-key module destination &optional diatheke-output-format searchp)
+  "Invoke diatheke using CALL-PROCESS. Return value undefined. QUERY-KEY is a string or a list (e.g., '(\"John\" \"1:1\")). See the docstring for CALL-PROCESS for a description of DESTINATION. DIATHEKE-OUTPUT-FORMAT is a keyword specifying the diatheke output format. Supported values are :osis and :plain."
+  (let ((call-process-args (list dtk-program
+				 nil
+				 destination
+				 t ; redisplay buffer as output is inserted
+				 ;; ARGS
+				 "-b" module)))
+    (cond (searchp
+	   ;; diatheke -b module_name -s regex|multi‐word|phrase [-r  search_range] [-l locale] -k search_string
+	   (setf call-process-args (append call-process-args '("-s" "phrase"))))
+	  (diatheke-output-format
+	   (setf call-process-args
+		 (append call-process-args
+			 (list
+			  "-o" (case diatheke-output-format
+				 (:osis "nfmslx")
+				 (:plain "n"))
+			  "-f" (case diatheke-output-format
+				 (:osis "OSIS")
+				 (:plain "plain")))))))
+    (setq call-process-args (append call-process-args '("-k") (cond ((stringp query-key)
+								     (list query-key))
+								    (t query-key))))
+    (apply 'call-process call-process-args)))
+
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
