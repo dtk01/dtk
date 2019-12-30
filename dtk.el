@@ -364,21 +364,24 @@ Optional argument MODULE specifies the module to use."
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
-  (let ((modulelist-strings
-	 (process-lines dtk-program "-b" "system" "-k" "modulelist"))
+  (let ((modulelist-strings (s-lines (dtk-diatheke-string '("modulelist") "system")))
 	(modules-by-category nil))
     ;; construct list with the form ((category1 module11 ...) ... (categoryN moduleN1 ...))
     (dolist (x modulelist-strings)
-      ;; if last character in string is colon (:), assume X represents a category
-      (if (= (aref x (1- (length x))) 58)
-	  (push (list (seq-subseq x 0 (1- (length x)))) modules-by-category)
-	;; handle "modulename : moduledescription"
-	(let ((colon-position (seq-position x 58)))
-	  (let ((modulename (seq-subseq x 0 (1- colon-position)))
-		(module-description (seq-subseq x (+ 2 colon-position))))
-	    (setf (elt modules-by-category 0)
-		  (append (elt modules-by-category 0)
-			  (list (list modulename module-description))))))))
+      (cond ((string= "" (s-trim x))	; disregard empty lines
+	     nil)
+	    ;; if last character in string is colon (:), assume X represents a category
+	    ((= (aref x (1- (length x)))
+		58)
+	     (push (list (seq-subseq x 0 (1- (length x)))) modules-by-category))
+	    (t
+	     ;; handle "modulename : moduledescription"
+	     (let ((colon-position (seq-position x 58)))
+	       (let ((modulename (seq-subseq x 0 (1- colon-position)))
+		     (module-description (seq-subseq x (+ 2 colon-position))))
+		 (setf (elt modules-by-category 0)
+		       (append (elt modules-by-category 0)
+			       (list (list modulename module-description)))))))))
     modules-by-category))
 
 (defun dtk-modules-in-category (category)
