@@ -239,46 +239,38 @@ Optional argument MODULE specifies the module to use."
   (let ((module (or module dtk-module)))
     (insert
      (with-temp-buffer
-       (call-process dtk-program nil t
-                     t     ; redisplay buffer as output is inserted
-                     ;; arguments: -b KJV k John
-                     "-o" (case diatheke-output-format
-			    (:osis "nfmslx")
-			    (:plain "n"))
-		     ;; FIXME: perform a sanity check to determine if OSIS is available for the given text
-		     "-f" (case diatheke-output-format
-			    (:osis "OSIS")
-			    (:plain "plain"))
-                     "-b" module "-k" book chapter-verse)
-       ;; Provides user the option to work with "raw" diatheke output
-       (unless dtk-preserve-diatheke-output-p
-	 ;; Assume diatheke emits text and then emits
-	 ;; - zero or more empty lines followed by
-	 ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
-	 ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
-	 ;; - followed by a zero or more newlines
+       (dtk-diatheke (list book chapter-verse) module t diatheke-output-format nil)
+       (cond ((dtk-check-for-text-obesity)
+	      ;; Provides user the option to work with "raw" diatheke output
+	      (unless dtk-preserve-diatheke-output-p
+		;; Assume diatheke emits text and then emits
+		;; - zero or more empty lines followed by
+		;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
+		;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
+		;; - followed by a zero or more newlines
 
-	 ;; Post-process texts
-	 ;; Search back and remove (<module name>)
-	 (let ((end-point (point)))
-           (re-search-backward "^(.*)" nil t 1)
-           (delete-region (point) end-point))
-	 ;; Search back and remove duplicate text of last verse and the preceding colon
-	 (let ((end-point (point)))
-           (re-search-backward "^:" nil t 1)
-           (delete-region (point) end-point))
-	 ;; Parse text
-	 (let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
-	   ;; PARSED-LINES is a list where each member has the form
-	   ;; (:book "John" :chapter 1 :verse 1 :text (...))
-	   (let ((parsed-lines (case diatheke-output-format
-				 (:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
-				 (:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
-	     ;; replace diatheke output w/text from parsed-lines
-	     (delete-region (point-min) (point-max))
-	     (dtk-insert-verses parsed-lines))))
-       ;; Return contents of the temporary buffer
-       (buffer-string)
+		;; Post-process texts
+		;; Search back and remove (<module name>)
+		(let ((end-point (point)))
+		  (re-search-backward "^(.*)" nil t 1)
+		  (delete-region (point) end-point))
+		;; Search back and remove duplicate text of last verse and the preceding colon
+		(let ((end-point (point)))
+		  (re-search-backward "^:" nil t 1)
+		  (delete-region (point) end-point))
+		;; Parse text
+		(let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
+		  ;; PARSED-LINES is a list where each member has the form
+		  ;; (:book "John" :chapter 1 :verse 1 :text (...))
+		  (let ((parsed-lines (case diatheke-output-format
+					(:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
+					(:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
+		    ;; replace diatheke output w/text from parsed-lines
+		    (delete-region (point-min) (point-max))
+		    (dtk-insert-verses parsed-lines))))
+	      ;; Return contents of the temporary buffer
+	      (buffer-string))
+	     (t ""))
        )))
   t)
 
