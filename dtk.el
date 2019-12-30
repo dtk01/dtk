@@ -154,6 +154,12 @@ thing made that was made."
 								    (t query-key))))
     (apply 'call-process call-process-args)))
 
+(defun dtk-diatheke-string (query-key module &optional diatheke-output-format)
+  "Return a string."
+  (with-temp-buffer
+    (dtk-diatheke query-key module t diatheke-output-format)
+    (buffer-string)))
+
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
