@@ -118,10 +118,53 @@ thing made that was made."
 	   (dtk-init)
 	   (dtk-go-to)))))
 
+(defun dtk-check-for-text-obesity ()
+  "Intended for use with handling incoming text from diatheke invocation. If text is of a length likely to trigger a substantial delay due to parsing, confirm the intent of the user. Return a true value if text length is clearly not excessive or if the user has explicitly indicated a desire to process a text of substantial length."
+  (let ((sane-raw-length 100000))
+    (or (< (point) sane-raw-length)
+	dtk-preserve-diatheke-output-p
+	(if (y-or-n-p "That's a large chunk of text. Are you sure you want to proceed? ")
+	    t
+	  (progn
+	    (message "Okay")
+	    nil)))))
+
+(defun dtk-diatheke (query-key module destination &optional diatheke-output-format searchp)
+  "Invoke diatheke using CALL-PROCESS. Return value undefined. QUERY-KEY is a string or a list (e.g., '(\"John\" \"1:1\")). See the docstring for CALL-PROCESS for a description of DESTINATION. DIATHEKE-OUTPUT-FORMAT is either NIL or a keyword specifying the diatheke output format. Supported keyword values are :osis or :plain."
+  (let ((call-process-args (list dtk-program
+				 nil
+				 destination
+				 t ; redisplay buffer as output is inserted
+				 ;; ARGS
+				 "-b" module)))
+    (cond (searchp
+	   ;; diatheke -b module_name -s regex|multi‐word|phrase [-r  search_range] [-l locale] -k search_string
+	   (setf call-process-args (append call-process-args '("-s" "phrase"))))
+	  (diatheke-output-format
+	   (setf call-process-args
+		 (append call-process-args
+			 (list
+			  "-o" (case diatheke-output-format
+				 (:osis "nfmslx")
+				 (:plain "n"))
+			  "-f" (case diatheke-output-format
+				 (:osis "OSIS")
+				 (:plain "plain")))))))
+    (setq call-process-args (append call-process-args '("-k") (cond ((stringp query-key)
+								     (list query-key))
+								    (t query-key))))
+    (apply 'call-process call-process-args)))
+
+(defun dtk-diatheke-string (query-key module &optional diatheke-output-format)
+  "Return a string."
+  (with-temp-buffer
+    (dtk-diatheke query-key module t diatheke-output-format)
+    (buffer-string)))
+
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
-  (process-lines dtk-program "-b" module "-k" key))
+  (s-lines (dtk-diatheke-string key module)))
 
 (defun dtk-follow ()
   "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
@@ -203,46 +246,38 @@ Optional argument MODULE specifies the module to use."
   (let ((module (or module dtk-module)))
     (insert
      (with-temp-buffer
-       (call-process dtk-program nil t
-                     t     ; redisplay buffer as output is inserted
-                     ;; arguments: -b KJV k John
-                     "-o" (case diatheke-output-format
-			    (:osis "nfmslx")
-			    (:plain "n"))
-		     ;; FIXME: perform a sanity check to determine if OSIS is available for the given text
-		     "-f" (case diatheke-output-format
-			    (:osis "OSIS")
-			    (:plain "plain"))
-                     "-b" module "-k" book chapter-verse)
-       ;; Provides user the option to work with "raw" diatheke output
-       (unless dtk-preserve-diatheke-output-p
-	 ;; Assume diatheke emits text and then emits
-	 ;; - zero or more empty lines followed by
-	 ;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
-	 ;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
-	 ;; - followed by a zero or more newlines
+       (dtk-diatheke (list book chapter-verse) module t diatheke-output-format nil)
+       (cond ((dtk-check-for-text-obesity)
+	      ;; Provides user the option to work with "raw" diatheke output
+	      (unless dtk-preserve-diatheke-output-p
+		;; Assume diatheke emits text and then emits
+		;; - zero or more empty lines followed by
+		;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
+		;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
+		;; - followed by a zero or more newlines
 
-	 ;; Post-process texts
-	 ;; Search back and remove (<module name>)
-	 (let ((end-point (point)))
-           (re-search-backward "^(.*)" nil t 1)
-           (delete-region (point) end-point))
-	 ;; Search back and remove duplicate text of last verse and the preceding colon
-	 (let ((end-point (point)))
-           (re-search-backward "^:" nil t 1)
-           (delete-region (point) end-point))
-	 ;; Parse text
-	 (let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
-	   ;; PARSED-LINES is a list where each member has the form
-	   ;; (:book "John" :chapter 1 :verse 1 :text (...))
-	   (let ((parsed-lines (case diatheke-output-format
-				 (:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
-				 (:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
-	     ;; replace diatheke output w/text from parsed-lines
-	     (delete-region (point-min) (point-max))
-	     (dtk-insert-verses parsed-lines))))
-       ;; Return contents of the temporary buffer
-       (buffer-string)
+		;; Post-process texts
+		;; Search back and remove (<module name>)
+		(let ((end-point (point)))
+		  (re-search-backward "^(.*)" nil t 1)
+		  (delete-region (point) end-point))
+		;; Search back and remove duplicate text of last verse and the preceding colon
+		(let ((end-point (point)))
+		  (re-search-backward "^:" nil t 1)
+		  (delete-region (point) end-point))
+		;; Parse text
+		(let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
+		  ;; PARSED-LINES is a list where each member has the form
+		  ;; (:book "John" :chapter 1 :verse 1 :text (...))
+		  (let ((parsed-lines (case diatheke-output-format
+					(:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
+					(:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
+		    ;; replace diatheke output w/text from parsed-lines
+		    (delete-region (point-min) (point-max))
+		    (dtk-insert-verses parsed-lines))))
+	      ;; Return contents of the temporary buffer
+	      (buffer-string))
+	     (t ""))
        )))
   t)
 
@@ -259,9 +294,8 @@ Optional argument MODULE specifies the module to use."
     (dtk-clear-search-buffer)
     (dtk-switch-to-search-buffer)
     (dtk-search-mode)
-    (call-process dtk-program nil
-		  search-buffer
-		  t "-b" dtk-module "-s" "phrase" "-k" word-or-phrase)))
+    (dtk-diatheke word-or-phrase dtk-module t nil t)
+    ))
 
 ;;;
 ;;; dtk modules/books
@@ -331,21 +365,24 @@ Optional argument MODULE specifies the module to use."
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
-  (let ((modulelist-strings
-	 (process-lines dtk-program "-b" "system" "-k" "modulelist"))
+  (let ((modulelist-strings (s-lines (dtk-diatheke-string '("modulelist") "system")))
 	(modules-by-category nil))
     ;; construct list with the form ((category1 module11 ...) ... (categoryN moduleN1 ...))
     (dolist (x modulelist-strings)
-      ;; if last character in string is colon (:), assume X represents a category
-      (if (= (aref x (1- (length x))) 58)
-	  (push (list (seq-subseq x 0 (1- (length x)))) modules-by-category)
-	;; handle "modulename : moduledescription"
-	(let ((colon-position (seq-position x 58)))
-	  (let ((modulename (seq-subseq x 0 (1- colon-position)))
-		(module-description (seq-subseq x (+ 2 colon-position))))
-	    (setf (elt modules-by-category 0)
-		  (append (elt modules-by-category 0)
-			  (list (list modulename module-description))))))))
+      (cond ((string= "" (s-trim x))	; disregard empty lines
+	     nil)
+	    ;; if last character in string is colon (:), assume X represents a category
+	    ((= (aref x (1- (length x)))
+		58)
+	     (push (list (seq-subseq x 0 (1- (length x)))) modules-by-category))
+	    (t
+	     ;; handle "modulename : moduledescription"
+	     (let ((colon-position (seq-position x 58)))
+	       (let ((modulename (seq-subseq x 0 (1- colon-position)))
+		     (module-description (seq-subseq x (+ 2 colon-position))))
+		 (setf (elt modules-by-category 0)
+		       (append (elt modules-by-category 0)
+			       (list (list modulename module-description)))))))))
     modules-by-category))
 
 (defun dtk-modules-in-category (category)
@@ -688,35 +725,6 @@ representation of a W element:
       (optional (1+ space)
                 (group-n 4 (1+ anything))))
   "Regexp to parse each line of output from `diatheke'.")
-
-(defun dtk-sto--diatheke-get-modules ()
-  "Return a list of Sword modules from diatheke. The list is an alist where the key is the module category and the value is an alist where the key is the module abbreviation and the value is the corresponding string description."
-  (let ((modules-by-category nil)
-	(module-category nil))
-    (let ((abbrevs-descriptions nil))
-      (cl-loop for line in (s-lines (with-temp-buffer
-                                      (call-process dtk-program nil '(t nil) nil
-                                                    "-b" "system" "-k" "modulelist")
-                                      (buffer-string)))
-	       when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
-				      ":"
-				      string-end)
-				  line)
-	       do (if module-category
-		      (progn
-			(push (list module-category abbrevs-descriptions) modules-by-category)
-			(setf module-category nil)
-			(setf abbrevs-descriptions nil))
-		    (setf module-category (match-string 1 line)))
-               when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
-				      " : "
-				      (group-n 2 (zero-or-more anything)))
-				  line)
-	       do (push (cons (match-string 1 line)
-			      (match-string 2 line))
-			abbrevs-descriptions)))
-    modules-by-category))
-
 
 (defun dtk-sto--diatheke-parse-text (text &optional keep-newlines-p)
   "Parse TEXT line-by-line, returning a list of verse plists. When
