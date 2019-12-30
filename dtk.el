@@ -725,35 +725,6 @@ representation of a W element:
                 (group-n 4 (1+ anything))))
   "Regexp to parse each line of output from `diatheke'.")
 
-(defun dtk-sto--diatheke-get-modules ()
-  "Return a list of Sword modules from diatheke. The list is an alist where the key is the module category and the value is an alist where the key is the module abbreviation and the value is the corresponding string description."
-  (let ((modules-by-category nil)
-	(module-category nil))
-    (let ((abbrevs-descriptions nil))
-      (cl-loop for line in (s-lines (with-temp-buffer
-                                      (call-process dtk-program nil '(t nil) nil
-                                                    "-b" "system" "-k" "modulelist")
-                                      (buffer-string)))
-	       when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
-				      ":"
-				      string-end)
-				  line)
-	       do (if module-category
-		      (progn
-			(push (list module-category abbrevs-descriptions) modules-by-category)
-			(setf module-category nil)
-			(setf abbrevs-descriptions nil))
-		    (setf module-category (match-string 1 line)))
-               when (string-match (rx (group-n 1 (minimal-match (1+ (not (any ":")))))
-				      " : "
-				      (group-n 2 (zero-or-more anything)))
-				  line)
-	       do (push (cons (match-string 1 line)
-			      (match-string 2 line))
-			abbrevs-descriptions)))
-    modules-by-category))
-
-
 (defun dtk-sto--diatheke-parse-text (text &optional keep-newlines-p)
   "Parse TEXT line-by-line, returning a list of verse plists. When
 KEEP-NEWLINES-P is non-nil, keep blank lines in text.
