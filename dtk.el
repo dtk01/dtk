@@ -122,6 +122,7 @@ thing made that was made."
   "Intended for use with handling incoming text from diatheke invocation. If text is of a length likely to trigger a substantial delay due to parsing, confirm the intent of the user. Return a true value if text length is clearly not excessive or if the user has explicitly indicated a desire to process a text of substantial length."
   (let ((sane-raw-length 100000))
     (or (< (point) sane-raw-length)
+	dtk-preserve-diatheke-output-p
 	(if (y-or-n-p "That's a large chunk of text. Are you sure you want to proceed? ")
 	    t
 	  (progn
