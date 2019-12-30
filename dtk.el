@@ -163,7 +163,7 @@ thing made that was made."
 (defun dtk-dict-raw-lines (key module)
   "Perform a dictionary lookup using the dictionary module MODULE with query key KEY (a string). Return a list of lines, each corresponding to a line of output from invocation of diatheke."
   ;; $ diatheke -b "StrongsGreek" -k 3
-  (process-lines dtk-program "-b" module "-k" key))
+  (s-lines (dtk-diatheke-string key module)))
 
 (defun dtk-follow ()
   "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
