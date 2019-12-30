@@ -287,9 +287,8 @@ Optional argument MODULE specifies the module to use."
     (dtk-clear-search-buffer)
     (dtk-switch-to-search-buffer)
     (dtk-search-mode)
-    (call-process dtk-program nil
-		  search-buffer
-		  t "-b" dtk-module "-s" "phrase" "-k" word-or-phrase)))
+    (dtk-diatheke word-or-phrase dtk-module t nil t)
+    ))
 
 ;;;
 ;;; dtk modules/books
