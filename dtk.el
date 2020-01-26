@@ -297,6 +297,17 @@ Optional argument MODULE specifies the module to use."
     (dtk-diatheke word-or-phrase dtk-module t nil t)
     ))
 
+(defun dtk-search-follow ()
+  "Populate the dtk buffer with the text corresponding to the citation at point."
+  (interactive)
+  ;; The most likely desired behavior is to open the dtk buffer
+  ;; alongside the dtk-search buffer and to keep the focus in
+  ;; dtk-search buffer
+  (dtk-clear-dtk-buffer)
+  (dtk-follow)
+  (switch-to-buffer-other-window dtk-search-buffer-name)
+  )
+
 ;;;
 ;;; dtk modules/books
 ;;;
@@ -1190,6 +1201,7 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
 (defvar dtk-search-mode-map
   (let ((map (make-keymap)))
     (define-key map [return] 'dtk-preview-citation)
+    (define-key map "g" 'dtk-search-follow)
     map)
   "Keymap for dtk search buffer.")
 
