@@ -1351,7 +1351,7 @@ text property changes."
   (cond ((eobp)
 	 nil)
 	((not (get-text-property (point) 'chapter))
-	 (let ((changes-at-point (next-single-property-change (1+ (point)) 'chapter)))
+	 (let ((changes-at-point (next-single-property-change (point) 'chapter)))
 	   (if changes-at-point
 	       (goto-char changes-at-point))))))
 
