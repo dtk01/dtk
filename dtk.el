@@ -1313,15 +1313,16 @@ chapter text property value and X does not return a true value."
   (dtk-back-until-verse-defined))
 
 (defun dtk-back-until-verse-defined ()
-  "If the verse text property is not defined at point, back up until at a position where the verse text property is defined."
+  "If the verse text property is not defined at point, back up to the first point, relative to the current point, at which the verse text property is defined."
   (interactive)
-  (if (not (get-text-property (point) 'verse))
-      (goto-char
-       (1- (previous-single-property-change
-	    (if (eobp)
-		(point)
-	      (1+ (point)))
-	    'verse)))))
+  (when (and (not (= (point) 1))
+	     (not (get-text-property (point) 'verse)))
+    (if (get-text-property (1- (point)) 'verse)
+	(goto-char (1- (point)))
+      (goto-char (1-
+		  (previous-single-property-change
+		   (point)
+		   'verse))))))
 
 (defun dtk-previous-verse-change ()
   "Move to the point at which the 'verse text property assumes a different value (relative to the 'verse text property at the current point). Return the point at which the 'verse text property changed or, if the property does not change prior to the current point, return NIL."
