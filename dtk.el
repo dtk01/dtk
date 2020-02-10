@@ -1344,17 +1344,19 @@ succeeded by a different chapter."
     (dtk-forward-until-defined-chapter-not-equal current-chapter)))
 
 (defun dtk-forward-until-chapter-defined ()
-  "If the chapter text property is not defined at point, move forward
-until at a position where the chapter text property is defined. Return
-NIL if a position does not exist forward of point where the chapter
-text property changes."
+  "If the chapter text property is defined at point, return a true
+value. If the chapter text property is not defined at point, move
+forward until at a position where the chapter text property is
+defined. Return NIL if a position does not exist forward of point
+where the chapter text property changes."
   (interactive)
   (cond ((eobp)
 	 nil)
 	((not (get-text-property (point) 'chapter))
 	 (let ((changes-at-point (next-single-property-change (point) 'chapter)))
 	   (if changes-at-point
-	       (goto-char changes-at-point))))))
+	       (goto-char changes-at-point))))
+	(t t)))
 
 (defun dtk-forward-until-defined-chapter-not-equal (x &optional start-point)
   "Move forward past the either START-POINT (if non-nil) or current
