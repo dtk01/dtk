@@ -1307,6 +1307,15 @@ chapter text property value and X does not return a true value."
   (dtk-previous-verse)
   (dtk-to-start-of-current-verse))
 
+(defun dtk-insert-next-chapter-at-eob ()
+  "Attempt to insert the \"next\" chapter, relative to the chapter at point, at the end of the buffer."
+  (let ((current-chapter (get-text-property (point) 'chapter))
+	(book (get-text-property (point) 'book)))
+    (goto-char (point-max))
+    (newline)
+    (dtk-bible--insert-using-diatheke book
+				      (int-to-string (1+ current-chapter)))))
+
 (defun dtk-previous-verse ()
   "Move to the previous verse. No assurance is offered with respect to the exact location of point within the preceding verse after invoking DTK-PREVIOUS-VERSE."
   (interactive)
