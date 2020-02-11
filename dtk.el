@@ -1267,15 +1267,22 @@ preceded by a different chapter."
 (defun dtk-backward-until-chapter-defined ()
   "If the chapter text property is not defined at point, move backward
 until at a position where the chapter text property is defined. Return
-NIL if a position does not exist forward of point where the chapter
-text property changes."
+NIL if a position does not exist before point where the chapter text
+property is defined."
   (interactive)
-  (cond ((bobp)
-	 nil)
-	((not (get-text-property (point) 'chapter))
-	 (let ((changes-at-point (previous-single-property-change (1+ (point)) 'chapter)))
-	   (if changes-at-point
-	       (goto-char changes-at-point))))))
+  (when (and (not (bobp))
+	     (not (get-text-property (point) 'chapter)))
+    (cond ((get-text-property (1- (point)) 'chapter)
+	   (goto-char (1- (point))))
+	  (t
+	   (let ((changes-at (previous-single-property-change
+			      (point)
+			      'chapter)))
+	     (when changes-at
+	       (goto-char (1-
+			   (previous-single-property-change
+			    (point)
+			    'chapter)))))))))
 
 (defun dtk-backward-until-defined-chapter-not-equal (x &optional start-point)
   "Move forward past the either START-POINT (if non-nil) or current
