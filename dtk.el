@@ -1375,21 +1375,24 @@ where the chapter text property changes."
 	(t t)))
 
 (defun dtk-forward-until-defined-chapter-not-equal (x &optional start-point)
-  "Move forward past the either START-POINT (if non-nil) or current
+  "Move forward past either START-POINT (if non-nil) or the current
 point if, at some point past the current point, the chapter text
 property value is defined and the test for equality between the
-chapter text property value and X does not return a true value."
+chapter text property value and X does not return a true value. Return
+NIL if unable to move forward in the described manner."
   (let ((changes-at-point (next-single-property-change (1+ (or start-point
 							       (point)))
 						       'chapter)))
-    (when changes-at-point
-      (let ((new-chapter-text-property (get-text-property changes-at-point 'chapter)))
-	(cond ((and new-chapter-text-property
-		    (not (equal (get-text-property changes-at-point 'chapter)
-				x)))
-	       (goto-char changes-at-point))
-	      ;; Possibly at whitespace
-	      (t (dtk-forward-until-defined-chapter-not-equal x changes-at-point)))))))
+    (if changes-at-point
+	(let ((new-chapter-text-property (get-text-property changes-at-point 'chapter)))
+	  (cond ((and new-chapter-text-property
+		      (not (equal (get-text-property changes-at-point 'chapter)
+				  x)))
+		 (goto-char changes-at-point)
+		 t)
+		;; Possibly at whitespace
+		(t (dtk-forward-until-defined-chapter-not-equal x changes-at-point))))
+      nil)))
 
 (defun dtk-forward-verse ()
   "Move to the numeric component of the verse citation for the next verse."
