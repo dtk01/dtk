@@ -1351,13 +1351,21 @@ chapter text property value and X does not return a true value."
 (defun dtk-forward-chapter ()
   "Move to the next chapter (the point at which the chapter text
 property changes to a new value distinct from the current chapter text
-property value). Behavior is undefined if the current chapter is not
-succeeded by a different chapter."
+property value). If the current chapter is not succeeded by the text
+of a different chapter, attempt to insert the text of the next
+chapter."
   (interactive)
-  ;; If at whitespace w/o chapter property, move forward until chapter defined
-  (dtk-forward-until-chapter-defined)
+  ;; If at a position where the chapter property is not defined,
+  ;; attempt to move forward until the chapter property is defined.
+  (or (dtk-forward-until-chapter-defined)
+      ;; If at whitespace at the end of the buffer (whitespace which succeeds the "last" chapter), move back to get the chapter value
+      (dtk-back-until-verse-defined))
   (let ((current-chapter (get-text-property (point) 'chapter)))
-    (dtk-forward-until-defined-chapter-not-equal current-chapter)))
+    ;; If unable to move to next chapter with current buffer content,
+    ;; try to insert the text of the next chapter at the end of
+    ;; current text.
+    (if (not (dtk-forward-until-defined-chapter-not-equal current-chapter))
+	(dtk-insert-next-chapter-at-eob))))
 
 (defun dtk-forward-until-chapter-defined ()
   "If the chapter text property is defined at point, return a true
