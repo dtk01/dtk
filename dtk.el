@@ -907,13 +907,12 @@ OSIS XML document."
   (if (not dict-module)
       (message "%s" "specify the current dictionary module.")
     (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
-      (cond ((listp f-entry)
+      (cond ((consp f-entry)
 	     (let ((key-module (eval (rest f-entry))))
 	       (or key-module
 		   (cons nil dict-module))))
 	    ;; The specified dictionary module is not yet supported
 	    ((stringp dict-module)
-	     (message "Module %s is not yet supported." dict-module)
 	     nil)
 	    (t
 	     (error "Why are we here?")
@@ -996,7 +995,9 @@ OSIS XML document."
     (cond (dict-module
 	   (let ((key-module (dtk-dict-key-for-word-at-point dict-module))
 		 (format :plain))
-	     (cond ((not (car key-module))
+	     (cond ((not key-module)
+		    (message "Module %s is not supported as a dictionary module." dict-module))
+		   ((not (car key-module))
 		    (message "Unable to find dictionary data for %s." (cdr key-module)))
 		   (t
 		    (setf dict-module (dtk-dict-module-sanity-check (car key-module) dict-module (cdr key-module)))
