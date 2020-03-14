@@ -496,7 +496,8 @@ Optional argument MODULE specifies the module to use."
 			     (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
   (when verse
     (let ((verse-start (point)))
-      (insert (int-to-string verse) #x20)
+      (when dtk-verse-number-inserter
+	(funcall dtk-verse-number-inserter (int-to-string verse)))
       (set-text-properties verse-start (point) (list 'book book 'chapter chapter 'verse verse))
       ;; fontify verse numbers explicitly
       (add-text-properties verse-start (point) '(font-lock-face dtk-verse-number))))
@@ -507,6 +508,10 @@ Optional argument MODULE specifies the module to use."
       (add-text-properties text-start (point) (list 'book book 'chapter chapter 'verse verse))))
   (unless dtk-compact-view
     (insert #xa)))
+
+(defvar dtk-verse-number-inserter
+  (lambda (verse-number)
+    (insert verse-number #x20)))
 
 (defun dtk-insert-osis-string (string)
   ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
