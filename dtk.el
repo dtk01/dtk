@@ -646,8 +646,14 @@ representation of a W element:
 	      (progn
 		(insert #xa #xa)
 		(setf this-chapter chapter)
-		(dtk-verse-inserter book chapter verse text nil t))))))))
- 
+		(dtk-verse-inserter book chapter verse text nil t)))))
+      (when dtk-insert-verses-post (funcall dtk-insert-verses-post))
+      )))
+
+(defvar dtk-insert-verses-post nil
+  "If non-NIL, this should define a function to invoked after
+insertion of a set of verses via DTK-INSERT-VERSES.")
+
 (defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
