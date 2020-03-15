@@ -630,6 +630,8 @@ representation of a W element:
     (let ((this-chapter nil))
       ;; handle first verse
       (-let (((&plist :book book :chapter chapter :verse verse :text text) (pop verse-plists)))
+	(when dtk-insert-verses-pre
+	  (funcall dtk-insert-verses-pre book chapter verse verse-plists))
 	(dtk-verse-inserter book chapter verse text t t)
 	(setf this-chapter chapter))
       ;; Format the remaining verses, anticipating changes in chapter
@@ -649,6 +651,11 @@ representation of a W element:
 		(dtk-verse-inserter book chapter verse text nil t)))))
       (when dtk-insert-verses-post (funcall dtk-insert-verses-post))
       )))
+
+(defvar dtk-insert-verses-pre nil
+  "If non-NIL, this should define a function to invoke prior to
+inserting a set of verses via DTK-INSERT-VERSES. The function is
+called with four arguments: book, chapter, verse, and verse-plists.")
 
 (defvar dtk-insert-verses-post nil
   "If non-NIL, this should define a function to invoked after
