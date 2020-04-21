@@ -642,7 +642,11 @@ representation of a W element:
 	    (if (equal chapter this-chapter)
 		(progn
 		  (unless (member (char-before) '(#x20 #x0a #x0d))
-		    (insert #x20))
+		    (insert #x20)
+		    (add-text-properties (1- (point))
+					 (point)
+					 (list 'book book
+					       'chapter chapter)))
 		  (dtk-verse-inserter book chapter verse text nil nil))
 	      ;; new chapter
 	      (progn
