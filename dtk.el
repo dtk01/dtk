@@ -1304,7 +1304,7 @@ property is defined."
 			    'chapter)))))))))
 
 (defun dtk-backward-until-defined-chapter-not-equal (x &optional start-point)
-  "Move forward past the either START-POINT (if non-nil) or current
+  "Move backward past either START-POINT (if non-nil) or current
 point if, at some point before the current point, the chapter text
 property value is defined and the test for equality between the
 chapter text property value and X does not return a true value."
