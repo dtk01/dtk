@@ -43,7 +43,7 @@ The `*dtk*` buffer enables `dtk-mode` and provides the following keybindings:
 | C-M-b | `dtk-backward-chapter`       | Move point to previous chapter                                                 |
 | C-M-f | `dtk-forward-chapter`        | Move point to next chapter                                                     |
 
-To insert Biblical text directly in any buffer, use <mbd>M-x</kbd> `dtk-bible`.
+To insert Biblical text directly in any buffer, use <kbd>M-x</kbd> `dtk-bible`.
 Call with prefix argument (`C-u`) to temporarily change module when inserting
 text.
 
