@@ -441,7 +441,7 @@ Optional argument MODULE specifies the module to use."
 
 ;;;
 ;;; dtk buffers
-;;; 
+;;;
 (defun dtk-buffer-exists-p ()
   "Return an indication of whether the default dtk buffer exists."
   (get-buffer dtk-buffer-name))
