@@ -1135,13 +1135,17 @@ OSIS XML document."
   "Return a list where the first element is the dictionary number and the second element is a string describing the module corresponding to the key."
   (let ((raw-strings (split-string x "[ \f\t\n\r\v]+")))
     (mapcar #'(lambda (raw-string)
-		(string-match dtk-dict-osis-xml-lemma-strongs-regexp raw-string)
-		(let ((G-or-H (match-string 1 raw-string))
-		      (strongs-number (match-string 2 raw-string)))
-		  (list strongs-number
-			(pcase G-or-H
-			  ("G" "StrongsGreek")
-			  ("H" "StrongsHebrew")))))
+		(cond ((string-match dtk-dict-osis-xml-lemma-strongs-regexp
+				     raw-string)
+		       (let ((G-or-H (match-string 1 raw-string))
+			     (strongs-number (match-string 2 raw-string)))
+			 (list strongs-number
+			       (pcase G-or-H
+				 ("G" "StrongsGreek")
+				 ("H" "StrongsHebrew")))))
+		      (t
+		       ;; Silently ignore values we don't anticipate (vs. (display-warning ... ))
+		       )))
 	    raw-strings)))
 ;;
 ;; dtk major mode
