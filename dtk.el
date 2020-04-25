@@ -93,6 +93,15 @@ thing made that was made."
   ;; numeric input, so we skip them.
   )
 
+(defvar dtk-retriever nil
+  "A function which accepts a single argument, DESTINATION. Output is
+  sent to DESTINATION. DESTINATION should be a buffer. The retriever
+  should honor DTK-DIATHEKE-OUTPUT-FORMAT.")
+
+(defvar dtk-parser nil
+  "A function which accepts a string, parses it, and returns a list of
+  plists representing the parsed content.")
+
 ;;;;; Constants
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
