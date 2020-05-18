@@ -469,12 +469,12 @@ Optional argument MODULE specifies the module to use."
 (defun dtk-init ()
   "Initialize dtk buffer, if necessary. Switch to the dtk buffer."
   (when (not (dtk-buffer-exists-p))
-    (get-buffer-create dtk-buffer-name)
-    (dtk-mode))
+    (get-buffer-create dtk-buffer-name))
   ;; Switch window only when we're not already in *dtk*
   (if (not (string= (buffer-name) dtk-buffer-name))
       (switch-to-buffer-other-window dtk-buffer-name)
     (switch-to-buffer dtk-buffer-name))
+  (dtk-mode)
   )
 
 (defun dtk-ensure-search-buffer-exists ()
