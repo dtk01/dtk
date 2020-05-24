@@ -298,6 +298,36 @@ Optional argument MODULE specifies the module to use."
        )))
   t)
 
+(defun dtk-bible-retriever (destination)
+  "Insert retrieved content in the buffer specified by DESTINATION."
+  (unless dtk-diatheke-output-format
+    (setq dtk-diatheke-output-format :osis))
+  (with-current-buffer destination
+    (insert
+     (with-temp-buffer
+       (dtk-diatheke (list dtk-bible-book
+			   dtk-bible-chapter-verse)
+		     dtk-module
+		     t
+		     dtk-diatheke-output-format
+		     nil)
+       (when (dtk-check-for-text-obesity)
+	 (unless dtk-preserve-diatheke-output-p
+	   (dtk-bible--retriever--post-process)))
+       (buffer-string)))))
+
+(defun dtk-bible-retriever--post-process ()
+  "Post-processing directly after insertion of text supplied via
+diatheke."
+  ;; Removes diatheke's quirky addition of parenthesized indications of the module name after the requested text.
+  (let ((end-point (point)))
+    (re-search-backward "^(.*)" nil t 1)
+    (delete-region (point) end-point))
+  ;; Search back and remove duplicate text of last verse and the preceding colon
+  (let ((end-point (point)))
+    (re-search-backward "^:" nil t 1)
+    (delete-region (point) end-point)))
+
 (defun dtk-other ()
   "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
   (error "Unsupported"))
