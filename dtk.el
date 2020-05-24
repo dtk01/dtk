@@ -200,6 +200,14 @@ thing made that was made."
 	       (dtk-module-names dtk-module-category))
       nil)))
 
+(defmacro with-dtk-module (module &rest body)
+  "Temporarily consider module MODULE as the default module."
+  (declare (debug t))
+  `(let ((original-module dtk-module))
+     (setq dtk-module ,module)
+     ,@body
+     (setq dtk-module original-module)))
+
 (defun dtk-bible (&optional book chapter verse dtk-buffer-p)
   "Query diatheke and insert text.
 With `C-u' prefix arg, change module temporarily.
