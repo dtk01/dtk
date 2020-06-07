@@ -303,6 +303,26 @@ Optional argument MODULE specifies the module to use."
        )))
   t)
 
+(defun dtk-bible-parser (raw-string)
+  "Parse the string RAW-STRING. Return the parsed content as a plist."
+  (cond ((member dtk-diatheke-output-format '(:osis :plain))
+	 ;; Parsing can trigger an error (most likely XML parsing)
+	 (condition-case nil
+	     (case diatheke-output-format
+	       (:osis (dtk--parse-osis-xml-lines raw-string))
+	       (:plain (dtk-sto--diatheke-parse-text raw-string)))
+	   (error
+	    (display-warning 'dtk
+			     (format "dtk failed relying on %s format" dtk-diatheke-output-format)
+			     :warning)
+	    ;; Calling function should attempt to degrade gracefully
+	    ;; and try simple format if dtk-diatheke-output-format
+	    ;; isn't :plain
+	    nil			       ; return NIL upon parse failure
+	    ))
+	 )
+	(t (error "Value of dtk-diatheke-output-format is problematic"))))
+
 (defun dtk-bible-retriever (destination)
   "Insert retrieved content in the buffer specified by DESTINATION."
   (unless dtk-diatheke-output-format
