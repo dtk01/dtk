@@ -301,7 +301,7 @@ Optional argument MODULE specifies the module to use."
   (cond ((member dtk-diatheke-output-format '(:osis :plain))
 	 ;; Parsing can trigger an error (most likely XML parsing)
 	 (condition-case nil
-	     (case diatheke-output-format
+	     (case dtk-diatheke-output-format
 	       (:osis (dtk--parse-osis-xml-lines raw-string))
 	       (:plain (dtk-sto--diatheke-parse-text raw-string)))
 	   (error
