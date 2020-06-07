@@ -93,12 +93,17 @@ thing made that was made."
   ;; numeric input, so we skip them.
   )
 
-(defvar dtk-retriever nil
+(defvar dtk-inserter 'dtk-insert-verses
+  "A function which accepts a single argument, the parsed content. The
+  current buffer is used. The inserter is only invoked if dtk-parser
+  is not NIL.")
+
+(defvar dtk-retriever 'dtk-bible-retriever
   "A function which accepts a single argument, DESTINATION. Output is
   sent to DESTINATION. DESTINATION should be a buffer. The retriever
   should honor DTK-DIATHEKE-OUTPUT-FORMAT.")
 
-(defvar dtk-parser nil
+(defvar dtk-parser 'dtk-bible-parser
   "A function which accepts a string, parses it, and returns a list of
   plists representing the parsed content.")
 
