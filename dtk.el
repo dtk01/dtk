@@ -245,20 +245,13 @@ obtain book, chapter, and verse."
 	     (dtk-init))
 	    (t
 	     (switch-to-buffer dtk-buffer-name))))
-    ;; User can specify output format, overriding default
-    (let ((output-format (or dtk-diatheke-output-format :osis)))
-      ;; Insert text directly
-      (condition-case nil
-	  (dtk-bible--insert-using-diatheke final-book chapter-verse final-module output-format)
-	(error
-	 ;; at this point, consider the game up (most likely XML parsing triggered an error);
-	 ;; attempt to degrade gracefully and try simple/plain format
-	 (cond ((eq output-format :plain)
-		(warn "dtk failed relying on plain format"))
-	       (t
-		(dtk-bible--insert-using-diatheke final-book chapter-verse final-module :plain))))))
-    )
-  )
+    ;; Expose these values to the retriever
+    (setq dtk-bible-book final-book)
+    (setq dtk-bible-chapter-verse chapter-verse)
+    (with-dtk-module final-module
+      (dtk-retrieve-parse-insert
+       (current-buffer)))
+    ))
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character).
