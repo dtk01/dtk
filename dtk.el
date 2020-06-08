@@ -610,6 +610,24 @@ DTK-INSERTER."
   (lambda (verse-number)
     (insert verse-number #x20)))
 
+(defun dtk-text-props-for-lemma (lemma)
+  "Return text properties for LEMMA."
+  (let ((strongs-refs (dtk-dict-parse-osis-xml-lemma lemma))
+	(text-props nil))
+    (unless strongs-refs
+      (warn "Failed to handle lemma value %s" lemma))
+    (map nil #'(lambda (strongs-ref)
+		 ;; ignore lemma components which were disregarded by DTK-DICT-PARSE-OSIS-XML-LEMMA
+		 (when strongs-ref
+		   (destructuring-bind (strongs-number module)
+		       strongs-ref
+		     (when dtk-show-dict-numbers (insert " " strongs-number))
+		     (setq text-props
+			   (append
+			    (list 'dict (list strongs-number module))
+			    text-props)))))
+	 strongs-refs)))
+
 (defun dtk-insert-osis-string (string)
   ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
   (when (string-match "^[a-zA-Z]" string)
