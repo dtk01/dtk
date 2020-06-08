@@ -652,22 +652,10 @@ DTK-INSERTER."
 			    (cdr lemma-pair)))))
 	   (let ((beg (point)))
 	     (dtk-simple-osis-inserter children)
-	     ;; add text properties
 	     (when lemma
-	       (let ((strongs-refs (dtk-dict-parse-osis-xml-lemma lemma))
-		     (text-props nil))
-		 (unless strongs-refs
-		   (warn "Failed to handle lemma value %s" lemma))
-		 (map nil #'(lambda (strongs-ref)
-			      (destructuring-bind (strongs-number module)
-				  strongs-ref
-				(when dtk-show-dict-numbers (insert " " strongs-number))
-				(setq text-props
-				      (append
-				       (list 'dict (list strongs-number module))
-				       text-props))))
-		      strongs-refs)
-		 (add-text-properties beg (point) text-props)))))))
+	       (add-text-properties beg (point)
+				    (dtk-text-props-for-lemma lemma))
+	       )))))
       (divineName
        (dtk-simple-osis-inserter children))
       (transChange
