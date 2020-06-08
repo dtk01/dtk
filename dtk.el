@@ -207,7 +207,8 @@ thing made that was made."
 
 (defmacro with-dtk-module (module &rest body)
   "Temporarily consider module MODULE as the default module."
-  (declare (debug t))
+  (declare (debug t)
+	   (indent defun))
   `(let ((original-module dtk-module))
      (setq dtk-module ,module)
      ,@body
