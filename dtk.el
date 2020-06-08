@@ -1233,9 +1233,12 @@ OSIS XML document."
 			 :notes nil
 			 :word dict-word)))
 
-;; The current implementation assumes that, if the "lemma" attribute is present, it is a string representation of one or more Strong's dictionary references in the form, "strong:G1722 strong:G1723 ...", that seems to be used as a lemma attribute value in diatheke-accessible Biblical texts.
+;; The current implementation assumes that, if the "lemma" attribute is present, it is a string of whitespace-separated values. Values of the form "strong:G1161" are handled. Others (e.g., "lemma.TR:δε") are disregarded.
 (defun dtk-dict-parse-osis-xml-lemma (x)
-  "Return a list where the first element is the dictionary number and the second element is a string describing the module corresponding to the key."
+  "Return a list where each element is either NIL (indicating value
+was disregarded) or a list where the first element is the dictionary
+number and the second element is a string describing the module
+corresponding to the key."
   (let ((raw-strings (split-string x "[ \f\t\n\r\v]+")))
     (mapcar #'(lambda (raw-string)
 		(cond ((string-match dtk-dict-osis-xml-lemma-strongs-regexp
@@ -1247,7 +1250,7 @@ OSIS XML document."
 				 ("G" "StrongsGreek")
 				 ("H" "StrongsHebrew")))))
 		      (t
-		       ;; Silently ignore values we don't anticipate (vs. (display-warning ... ))
+		       nil ; Silently ignore values we don't handle (vs. (display-warning ... ))
 		       )))
 	    raw-strings)))
 ;;
