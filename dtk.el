@@ -331,7 +331,7 @@ Optional argument MODULE specifies the module to use."
 		     nil)
        (when (dtk-check-for-text-obesity)
 	 (unless dtk-preserve-diatheke-output-p
-	   (dtk-bible--retriever--post-process)))
+	   (dtk-bible-retriever--post-process)))
        (buffer-string)))))
 
 (defun dtk-bible-retriever--post-process ()
