@@ -93,6 +93,20 @@ thing made that was made."
   ;; numeric input, so we skip them.
   )
 
+(defvar dtk-inserter 'dtk-insert-verses
+  "A function which accepts a single argument, the parsed content. The
+  current buffer is used. The inserter is only invoked if dtk-parser
+  is not NIL.")
+
+(defvar dtk-retriever 'dtk-bible-retriever
+  "A function which accepts a single argument, DESTINATION. Output is
+  sent to DESTINATION. DESTINATION should be a buffer. The retriever
+  should honor DTK-DIATHEKE-OUTPUT-FORMAT.")
+
+(defvar dtk-parser 'dtk-bible-parser
+  "A function which accepts a string, parses it, and returns a list of
+  plists representing the parsed content.")
+
 ;;;;; Constants
 (defconst dtk-books
   '("Genesis" "Exodus" "Leviticus" "Numbers" "Deuteronomy" "Joshua" "Judges" "Ruth" "I Samuel" "II Samuel" "I Kings" "II Kings" "I Chronicles" "II Chronicles" "Ezra" "Nehemiah" "Esther" "Job" "Psalms" "Proverbs" "Ecclesiastes" "Song of Solomon" "Isaiah" "Jeremiah" "Lamentations" "Ezekiel" "Daniel" "Hosea"  "Joel" "Amos" "Obadiah" "Jonah" "Micah" "Nahum" "Habakkuk" "Zephaniah" "Haggai" "Zechariah" "Malachi"
@@ -191,6 +205,15 @@ thing made that was made."
 	       (dtk-module-names dtk-module-category))
       nil)))
 
+(defmacro with-dtk-module (module &rest body)
+  "Temporarily consider module MODULE as the default module."
+  (declare (debug t)
+	   (indent defun))
+  `(let ((original-module dtk-module))
+     (setq dtk-module ,module)
+     ,@body
+     (setq dtk-module original-module)))
+
 (defun dtk-bible (&optional book chapter verse dtk-buffer-p)
   "Query diatheke and insert text.
 With `C-u' prefix arg, change module temporarily.
@@ -223,20 +246,13 @@ obtain book, chapter, and verse."
 	     (dtk-init))
 	    (t
 	     (switch-to-buffer dtk-buffer-name))))
-    ;; User can specify output format, overriding default
-    (let ((output-format (or dtk-diatheke-output-format :osis)))
-      ;; Insert text directly
-      (condition-case nil
-	  (dtk-bible--insert-using-diatheke final-book chapter-verse final-module output-format)
-	(error
-	 ;; at this point, consider the game up (most likely XML parsing triggered an error);
-	 ;; attempt to degrade gracefully and try simple/plain format
-	 (cond ((eq output-format :plain)
-		(warn "dtk failed relying on plain format"))
-	       (t
-		(dtk-bible--insert-using-diatheke final-book chapter-verse final-module :plain))))))
-    )
-  )
+    ;; Expose these values to the retriever
+    (setq dtk-bible-book final-book)
+    (setq dtk-bible-chapter-verse chapter-verse)
+    (with-dtk-module final-module
+      (dtk-retrieve-parse-insert
+       (current-buffer)))
+    ))
 
 (defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
   "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character).
@@ -281,9 +297,90 @@ Optional argument MODULE specifies the module to use."
        )))
   t)
 
+(defun dtk-bible-parser (raw-string)
+  "Parse the string RAW-STRING. Return the parsed content as a plist."
+  (cond ((member dtk-diatheke-output-format '(:osis :plain))
+	 ;; Parsing can trigger an error (most likely XML parsing)
+	 (condition-case nil
+	     (case dtk-diatheke-output-format
+	       (:osis (dtk--parse-osis-xml-lines raw-string))
+	       (:plain (dtk-sto--diatheke-parse-text raw-string)))
+	   (error
+	    (display-warning 'dtk
+			     (format "dtk failed relying on %s format" dtk-diatheke-output-format)
+			     :warning)
+	    ;; Calling function should attempt to degrade gracefully
+	    ;; and try simple format if dtk-diatheke-output-format
+	    ;; isn't :plain
+	    nil			       ; return NIL upon parse failure
+	    ))
+	 )
+	(t (error "Value of dtk-diatheke-output-format is problematic"))))
+
+(defun dtk-bible-retriever (destination)
+  "Insert retrieved content in the buffer specified by DESTINATION."
+  (unless dtk-diatheke-output-format
+    (setq dtk-diatheke-output-format :osis))
+  (with-current-buffer destination
+    (insert
+     (with-temp-buffer
+       (dtk-diatheke (list dtk-bible-book
+			   dtk-bible-chapter-verse)
+		     dtk-module
+		     t
+		     dtk-diatheke-output-format
+		     nil)
+       (when (dtk-check-for-text-obesity)
+	 (unless dtk-preserve-diatheke-output-p
+	   (dtk-bible-retriever--post-process)))
+       (buffer-string)))))
+
+(defun dtk-bible-retriever--post-process ()
+  "Post-processing directly after insertion of text supplied via
+diatheke."
+  ;; Removes diatheke's quirky addition of parenthesized indications of the module name after the requested text.
+  (let ((end-point (point)))
+    (re-search-backward "^(.*)" nil t 1)
+    (delete-region (point) end-point))
+  ;; Search back and remove duplicate text of last verse and the preceding colon
+  (let ((end-point (point)))
+    (re-search-backward "^:" nil t 1)
+    (delete-region (point) end-point)))
+
 (defun dtk-other ()
   "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
   (error "Unsupported"))
+
+(defun dtk-retrieve-parse-insert (insert-into)
+  "Invoke DTK-RETRIEVER, anticipating that the text of interest will
+be inserted into the buffer specified by INSERT-INTO. If
+DTK-PRESERVE-DIATHEKE-OUTPUT-P is true, preserve the retrieved text.
+If DTK-PRESERVE-DIATHEKE-OUTPUT-P is NIL, parse the retrieved text
+using DTK-PARSER. Once parsed, invoke DTK-INSERTER with the value
+returned by DTK-PARSER (presumably the parse representation of the
+text), replacing the originally-inserted text with that generated by
+DTK-INSERTER."
+  (let ((point-start (point)))
+    (funcall dtk-retriever insert-into)
+    (let ((point-end (point)))
+      (when (and dtk-parser (not dtk-preserve-diatheke-output-p))
+	(let ((raw-content (buffer-substring-no-properties point-start
+							   point-end)))
+	  ;; sanity check(s) for raw-content
+	  ;; - e.g., if it is "", something has gone awry
+	  (cond ((and (stringp raw-content) (> (length raw-content) 0))
+		 (let ((parsed-content (funcall dtk-parser raw-content)))
+		   (cond (parsed-content
+			  (kill-region point-start point-end)
+			  (funcall dtk-inserter parsed-content))
+			 (t
+			  (display-warning
+			   :warning
+			   "Parsing yielded nothing. Is this expected behavior?"
+			   )
+			  ))))
+		(t
+		 (error "Something went awry"))))))))
 
 ;;;###autoload
 (defun dtk-search (&optional word-or-phrase)
@@ -460,12 +557,12 @@ Optional argument MODULE specifies the module to use."
 (defun dtk-init ()
   "Initialize dtk buffer, if necessary. Switch to the dtk buffer."
   (when (not (dtk-buffer-exists-p))
-    (get-buffer-create dtk-buffer-name)
-    (dtk-mode))
+    (get-buffer-create dtk-buffer-name))
   ;; Switch window only when we're not already in *dtk*
   (if (not (string= (buffer-name) dtk-buffer-name))
       (switch-to-buffer-other-window dtk-buffer-name)
     (switch-to-buffer dtk-buffer-name))
+  (dtk-mode)
   )
 
 (defun dtk-ensure-search-buffer-exists ()
@@ -513,6 +610,24 @@ Optional argument MODULE specifies the module to use."
   (lambda (verse-number)
     (insert verse-number #x20)))
 
+(defun dtk-text-props-for-lemma (lemma)
+  "Return text properties for LEMMA."
+  (let ((strongs-refs (dtk-dict-parse-osis-xml-lemma lemma))
+	(text-props nil))
+    (unless strongs-refs
+      (warn "Failed to handle lemma value %s" lemma))
+    (map nil #'(lambda (strongs-ref)
+		 ;; ignore lemma components which were disregarded by DTK-DICT-PARSE-OSIS-XML-LEMMA
+		 (when strongs-ref
+		   (destructuring-bind (strongs-number module)
+		       strongs-ref
+		     (when dtk-show-dict-numbers (insert " " strongs-number))
+		     (setq text-props
+			   (append
+			    (list 'dict (list strongs-number module))
+			    text-props)))))
+	 strongs-refs)))
+
 (defun dtk-insert-osis-string (string)
   ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
   (when (string-match "^[a-zA-Z]" string)
@@ -537,22 +652,10 @@ Optional argument MODULE specifies the module to use."
 			    (cdr lemma-pair)))))
 	   (let ((beg (point)))
 	     (dtk-simple-osis-inserter children)
-	     ;; add text properties
 	     (when lemma
-	       (let ((strongs-refs (dtk-dict-parse-osis-xml-lemma lemma))
-		     (text-props nil))
-		 (unless strongs-refs
-		   (warn "Failed to handle lemma value %s" lemma))
-		 (map nil #'(lambda (strongs-ref)
-			      (destructuring-bind (strongs-number module)
-				  strongs-ref
-				(when dtk-show-dict-numbers (insert " " strongs-number))
-				(setq text-props
-				      (append
-				       (list 'dict (list strongs-number module))
-				       text-props))))
-		      strongs-refs)
-		 (add-text-properties beg (point) text-props)))))))
+	       (add-text-properties beg (point)
+				    (dtk-text-props-for-lemma lemma))
+	       )))))
       (divineName
        (dtk-simple-osis-inserter children))
       (transChange
@@ -627,9 +730,10 @@ representation of a W element:
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
   (cl-flet ()
-    (let ((this-chapter nil))
+    (let ((this-chapter nil)
+	  (first-verse-plist (pop verse-plists)))
       ;; handle first verse
-      (-let (((&plist :book book :chapter chapter :verse verse :text text) (pop verse-plists)))
+      (-let (((&plist :book book :chapter chapter :verse verse :text text) first-verse-plist))
 	(when dtk-insert-verses-pre
 	  (funcall dtk-insert-verses-pre book chapter verse verse-plists))
 	(dtk-verse-inserter book chapter verse text t t)
@@ -1130,18 +1234,25 @@ OSIS XML document."
 			 :notes nil
 			 :word dict-word)))
 
-;; The current implementation assumes that, if the "lemma" attribute is present, it is a string representation of one or more Strong's dictionary references in the form, "strong:G1722 strong:G1723 ...", that seems to be used as a lemma attribute value in diatheke-accessible Biblical texts.
+;; The current implementation assumes that, if the "lemma" attribute is present, it is a string of whitespace-separated values. Values of the form "strong:G1161" are handled. Others (e.g., "lemma.TR:δε") are disregarded.
 (defun dtk-dict-parse-osis-xml-lemma (x)
-  "Return a list where the first element is the dictionary number and the second element is a string describing the module corresponding to the key."
+  "Return a list where each element is either NIL (indicating value
+was disregarded) or a list where the first element is the dictionary
+number and the second element is a string describing the module
+corresponding to the key."
   (let ((raw-strings (split-string x "[ \f\t\n\r\v]+")))
     (mapcar #'(lambda (raw-string)
-		(string-match dtk-dict-osis-xml-lemma-strongs-regexp raw-string)
-		(let ((G-or-H (match-string 1 raw-string))
-		      (strongs-number (match-string 2 raw-string)))
-		  (list strongs-number
-			(pcase G-or-H
-			  ("G" "StrongsGreek")
-			  ("H" "StrongsHebrew")))))
+		(cond ((string-match dtk-dict-osis-xml-lemma-strongs-regexp
+				     raw-string)
+		       (let ((G-or-H (match-string 1 raw-string))
+			     (strongs-number (match-string 2 raw-string)))
+			 (list strongs-number
+			       (pcase G-or-H
+				 ("G" "StrongsGreek")
+				 ("H" "StrongsHebrew")))))
+		      (t
+		       nil ; Silently ignore values we don't handle (vs. (display-warning ... ))
+		       )))
 	    raw-strings)))
 ;;
 ;; dtk major mode
