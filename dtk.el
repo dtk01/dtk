@@ -730,9 +730,10 @@ representation of a W element:
 (defun dtk-insert-verses (verse-plists)
   "Insert formatted text described by VERSE-PLISTS."
   (cl-flet ()
-    (let ((this-chapter nil))
+    (let ((this-chapter nil)
+	  (first-verse-plist (pop verse-plists)))
       ;; handle first verse
-      (-let (((&plist :book book :chapter chapter :verse verse :text text) (pop verse-plists)))
+      (-let (((&plist :book book :chapter chapter :verse verse :text text) first-verse-plist))
 	(when dtk-insert-verses-pre
 	  (funcall dtk-insert-verses-pre book chapter verse verse-plists))
 	(dtk-verse-inserter book chapter verse text t t)
