@@ -158,10 +158,10 @@ thing made that was made."
 	   (setf call-process-args
 		 (append call-process-args
 			 (list
-			  "-o" (case diatheke-output-format
+			  "-o" (cl-case diatheke-output-format
 				 (:osis "nfmslx")
 				 (:plain "n"))
-			  "-f" (case diatheke-output-format
+			  "-f" (cl-case diatheke-output-format
 				 (:osis "OSIS")
 				 (:plain "plain")))))))
     (setq call-process-args (append call-process-args '("-k") (cond ((stringp query-key)
@@ -285,7 +285,7 @@ Optional argument MODULE specifies the module to use."
 		(let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
 		  ;; PARSED-LINES is a list where each member has the form
 		  ;; (:book "John" :chapter 1 :verse 1 :text (...))
-		  (let ((parsed-lines (case diatheke-output-format
+		  (let ((parsed-lines (cl-case diatheke-output-format
 					(:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
 					(:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
 		    ;; replace diatheke output w/text from parsed-lines
@@ -302,7 +302,7 @@ Optional argument MODULE specifies the module to use."
   (cond ((member dtk-diatheke-output-format '(:osis :plain))
 	 ;; Parsing can trigger an error (most likely XML parsing)
 	 (condition-case nil
-	     (case dtk-diatheke-output-format
+	     (cl-case dtk-diatheke-output-format
 	       (:osis (dtk--parse-osis-xml-lines raw-string))
 	       (:plain (dtk-sto--diatheke-parse-text raw-string)))
 	   (error
@@ -448,7 +448,7 @@ DTK-INSERTER."
 
 (defun dtk-module-map-get-parser (module-name format)
   "Return the parser description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
-  (plist-get (second (dtk-module-map-entry module-name))
+  (plist-get (cl-second (dtk-module-map-entry module-name))
 	     format))
 
 (defun dtk-module-names (module-category)
@@ -616,17 +616,17 @@ DTK-INSERTER."
 	(text-props nil))
     (unless strongs-refs
       (warn "Failed to handle lemma value %s" lemma))
-    (map nil #'(lambda (strongs-ref)
-		 ;; ignore lemma components which were disregarded by DTK-DICT-PARSE-OSIS-XML-LEMMA
-		 (when strongs-ref
-		   (destructuring-bind (strongs-number module)
-		       strongs-ref
-		     (when dtk-show-dict-numbers (insert " " strongs-number))
-		     (setq text-props
-			   (append
-			    (list 'dict (list strongs-number module))
-			    text-props)))))
-	 strongs-refs)))
+    (cl-map nil #'(lambda (strongs-ref)
+		    ;; ignore lemma components which were disregarded by DTK-DICT-PARSE-OSIS-XML-LEMMA
+		    (when strongs-ref
+		      (cl-destructuring-bind (strongs-number module)
+			  strongs-ref
+			(when dtk-show-dict-numbers (insert " " strongs-number))
+			(setq text-props
+			      (append
+			       (list 'dict (list strongs-number module))
+			       text-props)))))
+	    strongs-refs)))
 
 (defun dtk-insert-osis-string (string)
   ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
@@ -639,7 +639,7 @@ DTK-INSERTER."
   (let* ((tag (pop osis-elt))
 	 (attributes (pop osis-elt))
 	 (children osis-elt))
-    (case tag
+    (cl-case tag
       (w
        (when children
 	 ;; The example provided in the 2006 description of OSIS shows
@@ -674,7 +674,7 @@ DTK-INSERTER."
 			 (cdr type-pair)))))
 	 (cond ((and
 		 t		       ;dtk-honor-osis-div-paragraph-p
-		 (equalp type "paragraph"))
+		 (cl-equalp type "paragraph"))
 		(insert #xa)))
 	 (dtk-simple-osis-inserter children)))
       (chapter
@@ -694,7 +694,7 @@ DTK-INSERTER."
 		     (if type-pair
 			 (cdr type-pair)))))
 	 (cond ((and nil	      ;dtk-honor-osis-milestone-line-p
-		     (equalp type "line"))
+		     (cl-equalp type "line"))
 		(insert #xa)))))
       (lb
        (when (and t			;dtk-honor-osis-lb-p
@@ -923,7 +923,7 @@ OSIS XML document."
 	  (current-line-n 0))
       (while (< current-line-n lines-n)
 	;; consume lines associated with a single verse
-	(multiple-value-bind (last-line-parsed-n parsed-verse)
+	(cl-multiple-value-bind (last-line-parsed-n parsed-verse)
 	    (dtk--diatheke-parse-osis-xml-for-verse lines current-line-n)
 	  (if parsed-verse
 	      (push parsed-verse parsed))
@@ -963,34 +963,34 @@ OSIS XML document."
 	  (when book
 	    (setf (elt lines n) first-line-raw-text))
 	  ;; per-line processing
-	  (do ((ignorep
-		;; discard/ignore some classes of diatheke OSIS output
-		(string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))
-		(string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))))
+	  (cl-do ((ignorep
+		   ;; discard/ignore some classes of diatheke OSIS output
+		   (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))
+		   (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))))
 	      (nil nil)
 	    (unless ignorep
 	      (setf text-raw
-		    (concatenate 'string text-raw (elt lines current-line-n))))
+		    (cl-concatenate 'string text-raw (elt lines current-line-n))))
 	    (when (or (>= current-line-n last-line-n)
 		      ;; check if next line corresponds to start of a new verse
 		      (string-match dtk-sto--diatheke-parse-line-regexp (elt lines (1+ current-line-n))))
-	      (return))
-	    (incf current-line-n))
+	      (cl-return))
+	    (cl-incf current-line-n))
 	  ;; Add root element and parse text as a single piece of XML
 	  (let ((text-structured (with-temp-buffer
 				   (insert "<r>" text-raw "</r>")
 				   (xml-parse-region))))
-            (values current-line-n
-		    (list
-		     :book book :chapter chapter :verse verse
-		     :text (subseq (car text-structured) 2)))))))))
+            (cl-values current-line-n
+		       (list
+			:book book :chapter chapter :verse verse
+			:text (cl-subseq (car text-structured) 2)))))))))
 
 ;;
 ;; dictionary: handle dictionary entries and references
 ;;
 
 ;;; `dtk-dict-entry': Details for a dictionary entry
-(defstruct dtk-dict-entry
+(cl-defstruct dtk-dict-entry
   key ; the key that one would use to "look up" the entry via diatheke
   crossrefs			 ; cross-references; a list of strings
   def ; definition - a plain text string; this may include notes if the parser is unable to distinguish definition and notes
@@ -1034,7 +1034,7 @@ OSIS XML document."
       (message "%s" "specify the current dictionary module.")
     (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
       (cond ((consp f-entry)
-	     (let ((key-module (eval (rest f-entry))))
+	     (let ((key-module (eval (cl-rest f-entry))))
 	       (or key-module
 		   (cons nil dict-module))))
 	    ;; The specified dictionary module is not yet supported
@@ -1059,11 +1059,11 @@ OSIS XML document."
 	;; At this point, StrongGreek-StrongsHebrew mismatch is the only
 	;; such case
 	((and (string= dict-module "StrongsGreek")
-		 (equalp key-associated-module "StrongsHebrew"))
+		 (cl-equalp key-associated-module "StrongsHebrew"))
 	    (message "Requested StrongsGreek but using StrongsHebrew")
 	    "StrongsHebrew")
 	((and (string= dict-module "StrongsHebrew")
-	      (equalp key-associated-module "StrongsGreek"))
+	      (cl-equalp key-associated-module "StrongsGreek"))
 	 (message "Requested StrongsHebrew but using StrongsGreek")
 	 "StrongsGreek")
 	(t nil)))
@@ -1175,7 +1175,7 @@ OSIS XML document."
 		     ("G" "StrongsGreek")
 		     ("H" "StrongsHebrew")))))
 	  (word-dict
-	   (cons (first word-dict) (second word-dict)))
+	   (cons (cl-first word-dict) (cl-second word-dict)))
 	  (t
 	   (message "%s" "No Strong's data at point. Use a Biblical text with Strong's numbers.")
 	   nil))))
@@ -1225,7 +1225,7 @@ OSIS XML document."
 				   module))))
       ;; FIXME: string may end with module name in parentheses; should clean that up
       (let ((line (pop lines)))
-	(if (consp line) (setf line (first line)))
+	(if (consp line) (setf line (cl-first line)))
 	(setf dict-crossrefs (push line
 				   dict-crossrefs))))
     (make-dtk-dict-entry :crossrefs dict-crossrefs
