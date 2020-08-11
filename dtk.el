@@ -666,7 +666,12 @@ DTK-INSERTER."
 	   ;;(add-text-properties beg (point) '(font-lock-face dtk-translChange-face))
 	   )))
       (q				; quote
-       (dtk-simple-osis-inserter children))
+       (let ((quote-marker (let ((quote-marker-pair (assoc 'marker attributes)))
+			     (if quote-marker-pair
+				 (cdr quote-marker-pair)))))
+	 (when quote-marker (insert quote-marker))
+	 (dtk-simple-osis-inserter children)
+	 ))
       ;; containers
       (div
        (let ((type (let ((type-pair (assoc 'type attributes)))
