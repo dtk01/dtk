@@ -155,15 +155,16 @@ thing made that was made."
 	   ;; diatheke -b module_name -s regex|multi‐word|phrase [-r  search_range] [-l locale] -k search_string
 	   (setf call-process-args (append call-process-args '("-s" "phrase"))))
 	  (diatheke-output-format
-	   (setf call-process-args
-		 (append call-process-args
-			 (list
-			  "-o" (cl-case diatheke-output-format
-				 (:osis "nfmslx")
-				 (:plain "n"))
-			  "-f" (cl-case diatheke-output-format
-				 (:osis "OSIS")
-				 (:plain "plain")))))))
+	   (unless (eq diatheke-output-format :kludge)
+	     (setf call-process-args
+		   (append call-process-args
+			   (list
+			    "-o" (cl-case diatheke-output-format
+				   (:osis "nfmslx")
+				   (:plain "n"))
+			    "-f" (cl-case diatheke-output-format
+				   (:osis "OSIS")
+				   (:plain "plain"))))))))
     (setq call-process-args (append call-process-args '("-k") (cond ((stringp query-key)
 								     (list query-key))
 								    (t query-key))))
@@ -299,12 +300,14 @@ Optional argument MODULE specifies the module to use."
 
 (defun dtk-bible-parser (raw-string)
   "Parse the string RAW-STRING. Return the parsed content as a plist."
-  (cond ((member dtk-diatheke-output-format '(:osis :plain))
+  (cond ((member dtk-diatheke-output-format '(:kludge :osis :plain))
 	 ;; Parsing can trigger an error (most likely XML parsing)
 	 (condition-case nil
 	     (cl-case dtk-diatheke-output-format
 	       (:osis (dtk--parse-osis-xml-lines raw-string))
-	       (:plain (dtk-sto--diatheke-parse-text raw-string)))
+	       (:plain (dtk-sto--diatheke-parse-text raw-string))
+	       (:kludge (dtk--parse-osis-xml-lines raw-string))
+	       )
 	   (error
 	    (display-warning 'dtk
 			     (format "dtk failed relying on %s format" dtk-diatheke-output-format)
@@ -319,8 +322,11 @@ Optional argument MODULE specifies the module to use."
 
 (defun dtk-bible-retriever (destination)
   "Insert retrieved content in the buffer specified by DESTINATION."
+  ;; Using :osis as a default is problematic since invoking `-f OSIS`
+  ;; with diatheke yields output that has a variety of issues - e.g.,
+  ;; see http://tracker.crosswire.org/browse/MODTOOLS-105.
   (unless dtk-diatheke-output-format
-    (setq dtk-diatheke-output-format :osis))
+    (setq dtk-diatheke-output-format :kludge))
   (with-current-buffer destination
     (insert
      (with-temp-buffer
