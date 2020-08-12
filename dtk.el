@@ -1455,7 +1455,8 @@ chapter text property value and X does not return a true value."
     (dtk-bible--insert-using-diatheke book
 				      (int-to-string (1+ current-chapter))
 				      dtk-module
-				      (or dtk-diatheke-output-format :osis))))
+				      dtk-diatheke-output-format
+				      )))
 
 (defun dtk-previous-verse ()
   "Move to the previous verse. No assurance is offered with respect to the exact location of point within the preceding verse after invoking DTK-PREVIOUS-VERSE."
