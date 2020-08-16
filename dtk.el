@@ -639,7 +639,10 @@ DTK-INSERTER."
   (when (string-match "^[a-zA-Z]" string)
     (when (not (member (char-before) '(32 9 10 11 12 13 8220)))
       (insert #x20)))
-  (insert string))
+  (insert string)
+  ;; Ensure whitespace succeeds certain characters.
+  (when (member (char-before) '(58))
+    (insert #x20)))
 
 (defun dtk-insert-osis-elt (osis-elt)
   (let* ((tag (pop osis-elt))
