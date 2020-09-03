@@ -1407,10 +1407,23 @@ Turning on dtk mode runs `text-mode-hook', then `dtk-mode-hook'."
   "Move to the previous chapter. Behavior is undefined if the current chapter is not
 preceded by a different chapter."
   (interactive)
-  ;; If at whitespace w/o chapter property, or if at end of buffer, move backward until chapter defined
-  (dtk-backward-until-chapter-defined)
-  (let ((current-chapter (get-text-property (point) 'chapter)))
-    (dtk-backward-until-defined-chapter-not-equal current-chapter)))
+  (or
+   ;; If at whitespace w/o chapter property, or if at end of buffer, move backward until chapter defined
+   (dtk-backward-until-chapter-defined)
+   ;; If at start of buffer, move forward until chapter defined
+   (dtk-forward-until-chapter-defined))
+  (let ((book (get-text-property (point) 'book))
+	(current-chapter (get-text-property (point) 'chapter)))
+    ;; If unable to move to prior chapter with current buffer content,
+    ;; try to insert the text of the prior chapter at the start of
+    ;; the buffer
+    (if (not (dtk-backward-until-defined-chapter-not-equal current-chapter))
+	(progn
+	  (dtk-insert-chapter-at book
+				 (1- current-chapter)
+				 (point-min))
+	  (backward-word)		; expose chapter
+	  (dtk-to-start-of-current-chapter)))))
 
 (defun dtk-backward-until-chapter-defined ()
   "If the chapter text property is not defined at point, move backward
@@ -1455,17 +1468,13 @@ chapter text property value and X does not return a true value."
   (dtk-previous-verse)
   (dtk-to-start-of-current-verse))
 
-(defun dtk-insert-next-chapter-at-eob ()
-  "Attempt to insert the \"next\" chapter, relative to the chapter at point, at the end of the buffer."
-  (let ((current-chapter (get-text-property (point) 'chapter))
-	(book (get-text-property (point) 'book)))
-    (goto-char (point-max))
-    (newline)
-    (dtk-bible--insert-using-diatheke book
-				      (int-to-string (1+ current-chapter))
-				      dtk-module
-				      dtk-diatheke-output-format
-				      )))
+(defun dtk-insert-chapter-at (bk ch at)
+  "Attempt to insert the indicated chapter at the start of the buffer. CH is a number."
+  (goto-char at)
+  ;; Expose these values to the retriever
+  (setq dtk-bible-book bk)
+  (setq dtk-bible-chapter-verse (concat (int-to-string ch) ":"))
+  (dtk-retrieve-parse-insert (current-buffer)))
 
 (defun dtk-previous-verse ()
   "Move to the previous verse. No assurance is offered with respect to the exact location of point within the preceding verse after invoking DTK-PREVIOUS-VERSE."
@@ -1490,6 +1499,14 @@ chapter text property value and X does not return a true value."
 		  (previous-single-property-change
 		   (point)
 		   'verse))))))
+
+(defun dtk-previous-chapter-change ()
+  "Move to the point at which the 'chapter text property assumes a different value (relative to the 'chapter text property at the current point). Return the point at which the 'chapter text property changed or, if the property does not change prior to the current point, return NIL."
+  (interactive)
+  (let ((chapter-changes-at (previous-single-property-change (1+ (point)) 'chapter)))
+    (when chapter-changes-at
+      (goto-char (1- chapter-changes-at)))
+    chapter-changes-at))
 
 (defun dtk-previous-verse-change ()
   "Move to the point at which the 'verse text property assumes a different value (relative to the 'verse text property at the current point). Return the point at which the 'verse text property changed or, if the property does not change prior to the current point, return NIL."
@@ -1516,7 +1533,13 @@ chapter."
     ;; try to insert the text of the next chapter at the end of
     ;; current text.
     (if (not (dtk-forward-until-defined-chapter-not-equal current-chapter))
-	(dtk-insert-next-chapter-at-eob))))
+	;; insert next chapter at eob
+	(let ((book (get-text-property (point) 'book)))
+	  (goto-char (point-max))
+	  (newline)
+	  (dtk-insert-chapter-at book (1+ current-chapter) (point-max))
+	  (backward-word)		; expose chapter
+	  (dtk-to-start-of-current-chapter)))))
 
 (defun dtk-forward-until-chapter-defined ()
   "If the chapter text property is defined at point, return a true
@@ -1560,6 +1583,13 @@ NIL if unable to move forward in the described manner."
   ;; it is possible that whitespace is present not associated with a verse; if that's the case move forward until the 'verse property is defined
   (if (not (get-text-property (point) 'text))
       (goto-char (next-single-property-change (point) 'verse))))
+
+(defun dtk-to-start-of-current-chapter ()
+  "Move to the start of the current chapter."
+  (interactive)
+  (if (dtk-previous-chapter-change)
+      (forward-char)
+    (beginning-of-buffer)))
 
 (defun dtk-to-start-of-current-verse ()
   "Move to the start (beginning of the citation) of the current verse."
