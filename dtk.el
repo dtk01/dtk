@@ -478,7 +478,7 @@ DTK-INSERTER."
   (setq dtk-module-last-selection (lax-plist-put dtk-module-last-selection dtk-module-category dtk-module)))
 
 (defun dtk-modulelist ()
-  "Return an alist where each key is a string corresponding to a category and each value is a list of strings, each corresponding to a modules. A string describing a category has the form `Biblical Texts:`. A string describing a module has the form `ESV : English Standard Version`."
+  "Return an alist where each key is a string corresponding to a category and each value is a list of lists. Each value represents a set of modules. Each module is described by a list of the form (\"Nave\" \"Nave's Topical Bible\")."
   (let ((modulelist-strings (s-lines (dtk-diatheke-string '("modulelist") "system")))
 	(modules-by-category nil))
     ;; construct list with the form ((category1 module11 ...) ... (categoryN moduleN1 ...))
