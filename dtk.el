@@ -1043,14 +1043,18 @@ OSIS XML document."
 	   nil))))
 
 (defun dtk-dict-key-for-word-at-point (dict-module)
-  "Return a cons where (a) the car is a guess at the dictionary key to use for the word at point (NIL if unable to suggest a key for the word at point) and (b) the cdr is NIL or, if a module is directly associated with the key, the string specifying that module. DICT-MODULE specifies the dictionary module to be used."
+  "Return a list where (a) the first element is a guess at the dictionary key to use for the word at point (NIL if unable to suggest a key for the word at point), (b) the second element is NIL or, if a module is directly associated with the key, the string specifying that module and (c) the third element is an (optional) explanatory note. DICT-MODULE specifies the dictionary module to be used."
   (if (not dict-module)
       (message "%s" "specify the current dictionary module.")
     (let ((f-entry (assoc dict-module dtk-dict-key-functions)))
       (cond ((consp f-entry)
-	     (let ((key-module (eval (cl-rest f-entry))))
-	       (or key-module
-		   (cons nil dict-module))))
+	     (let ((key-module-note (eval (cl-rest f-entry))))
+	       (cond ((stringp key-module-note)
+		      (list nil nil key-module-note))
+		     ((consp key-module-note)
+		      key-module-note)
+		     (t
+		      (cons nil dict-module)))))
 	    ;; The specified dictionary module is not yet supported
 	    ((stringp dict-module)
 	     nil)
@@ -1128,21 +1132,24 @@ OSIS XML document."
 
 (defun dtk-dict-set-current-entry ()
   "Use word at point to set the current dictionary entry."
-  (let ((dict-module (or (if (equal dtk-module-category "Dictionaries")
-			     dtk-module)
-			 (lax-plist-get dtk-module-last-selection "Dictionaries")
-			 (dtk-select-module-of-type "First select a module: " "Dictionaries"))))
+  (let* ((dict-module-category "Lexicons / Dictionaries")
+	 (dict-module (or (if (equal dtk-module-category dict-module-category)
+			      dtk-module)
+			  (lax-plist-get dtk-module-last-selection dict-module-category)
+			  (dtk-select-module-of-type "First select a module: " dict-module-category))))
     (cond (dict-module
-	   (let ((key-module (dtk-dict-key-for-word-at-point dict-module))
+	   (let ((key-module-note (dtk-dict-key-for-word-at-point dict-module))
 		 (format :plain))
-	     (cond ((not key-module)
+	     (cond ((not key-module-note)
 		    (message "Module %s is not supported as a dictionary module." dict-module))
-		   ((not (car key-module))
-		    (message "Unable to find dictionary data for %s." (cdr key-module)))
+		   ((not (car key-module-note))
+		    (if (stringp (third key-module-note))
+			(message "%s" (third key-module-note))
+			(message "Unable to find dictionary data for %s." (cdr key-module))))
 		   (t
-		    (setf dict-module (dtk-dict-module-sanity-check (car key-module) dict-module (cdr key-module)))
+		    (setf dict-module (dtk-dict-module-sanity-check (car key-module-note) dict-module (cdr key-module-note)))
 		    (if dict-module
-			(dtk-dict-set-dtk-dict-current-entry (car key-module)
+			(dtk-dict-set-dtk-dict-current-entry (car key-module-note)
 							     dict-module
 							     format)
 		      (message "First select a reasonable dictionary module"))))))
@@ -1191,8 +1198,7 @@ OSIS XML document."
 	  (word-dict
 	   (cons (cl-first word-dict) (cl-second word-dict)))
 	  (t
-	   (message "%s" "No Strong's data at point. Use a Biblical text with Strong's numbers.")
-	   nil))))
+	   "No Strong's data at point. Use a Biblical text with Strong's numbers."))))
 
 (defun dtk-dict-strongs-parse (lines)
   "Parse either StrongsGreek or StrongsHebrew diatheke output"
