@@ -811,6 +811,54 @@ called with four arguments: book, chapter, verse, and verse-plists.")
 insertion of a set of verses via DTK-INSERT-VERSES.")
 
 (defun dtk-parse-citation-at-point ()
+  "Assume point is at a citation, return a list where the first
+member specifies the book, the second member specifies the
+chapter, and the third member specifies the verse by number.
+
+Note that if the citation crosses lines, it will not work. "
+  (interactive)
+  ;; Method:
+  ;; Search backward for space/separator, then try to parse forward for a citation.
+  ;;
+  ;; Consider a long name: "Revelation of John 20:10". If the point is somewhere
+  ;; at the end, it only takes 4 times to go to the beginning to start a proper
+  ;; search. So we go back at most 4 times, otherwise, nil is returned.
+  ;;
+  ;; To limit search scope, the search bound is set. Upper bound is the smaller
+  ;; of either 1) closeset close-parenthesis/separator or 2) current point + 15
+  ;; (using "Revelation of John 20:10", the possible longest citation, as an
+  ;; approximation). Lower bound is vice versa.
+  (save-excursion
+    (save-excursion
+      (setq forward-bound (min (re-search-forward (rx-to-string `(or (syntax close-parenthesis)
+                                                                     ";"
+                                                                     eol)))
+                               (+ (point) 15))))
+    ;; The search backward bound is the max position of a previous citation, which
+    ;; usually is signified by a closing parenthesis/separator
+    (save-excursion
+      (setq backward-bound (max (re-search-backward (rx-to-string `(or (syntax close-parenthesis)
+                                                                       ";"
+                                                                       bol)))
+                                (- (point) 15))))
+    ;; 2) In between the two bounds, search forward and try to parse citation for
+    ;; at most 4 times.
+    (setq count 0)
+    (while (and (>= (re-search-backward (rx (or space bol))) backward-bound)
+                (< count 4))
+      (when (re-search-forward dtk-citation-regexp forward-bound t)
+        (setq book (match-string 1)
+              chapter (match-string 2)
+              verse-range (match-string 3))
+        (message (concat "Detect citation: "
+                         book " " chapter (if verse-range (concat ":" verse-range) "")))
+        )
+      (setq count (1+ count)))
+    (list book chapter verse-range)
+    )
+  )
+
+(defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
 	(book-end-position nil)
