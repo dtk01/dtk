@@ -25,6 +25,7 @@
 (require 's)
 (require 'seq)
 (require 'subr-x)
+(require 'rx)
 
 ;;;; Customization
 ;; User configurable variables:
@@ -118,6 +119,32 @@ thing made that was made."
 (defconst dtk-books-regexp
   (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
+;; Regexps to match citation.
+;;
+;; This works for single verse as well as verse range expression, i.e,
+;; Genesis 10:10 and Matthew 2:1-10 will both work.
+;;
+;; Three groups are Book, Chapter, and Verse/Range (Optional) respectively. Note
+;; that user Verse/Range is optional, as sometimes the whole chapter is needed,
+;; e.g: Luke 3.
+;;
+;; `rx-to-string' usage is referred from:
+;; https://emacs.stackexchange.com/questions/2288/how-do-i-create-a-dynamic-regexp-with-rx
+(defconst dtk-citation-regexp
+  (rx-to-string
+   `(sequence
+     ;; Group 1: Book
+     (group (sequence symbol-start (or ,@dtk-books) symbol-end))
+     space
+     ;; Group 2: Chapter
+     (group (one-or-more digit))
+     ;; Group 3: Verse or Verse range
+     ;; Note this is optional, meaning that the whole chapter is needed.
+     (optional
+      ":"
+      (group (one-or-more digit) (opt "-" (one-or-more digit)))))
+   )
+  "Regular expression to match a citation.")
 
 ;;; Functions
 ;;;###autoload
