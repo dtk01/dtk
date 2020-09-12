@@ -211,9 +211,9 @@ thing made that was made."
   (declare (debug t)
 	   (indent defun))
   `(let ((original-module dtk-module))
-     (setq dtk-module ,module)
+     (dtk-set-module ,module)
      ,@body
-     (setq dtk-module original-module)))
+     (dtk-set-module original-module)))
 
 (defun dtk-bible (&optional book chapter verse dtk-buffer-p)
   "Query diatheke and insert text.
@@ -435,27 +435,49 @@ DTK-INSERTER."
   "CATEGORY is a string such as 'Biblical Texts' or 'Commentaries'."
   (assoc category (dtk-modulelist)))
 
+(defun dtk-module-get-category-for-module (module)
+  (cl-loop
+   for modulelist-entry in (dtk-modulelist)
+   if (member module (dtk-module-names-from-modulelist-entry modulelist-entry))
+   do (return (first modulelist-entry))))
+
 (defvar dtk-module-last-selection nil
   "A plist specifying the last selection of a module by module category.")
 
 (defvar dtk-module-map
   '(
-    ;; Biblical Texts
-    ("ESV2011" (:osis dtk-parse--esv2011) )
-    ;; Dictionaries
-    ("Dodson" dtk-parse--dodson)
-    ("StrongsGreek" (:plain dtk-dict-strongs-parse))
-    ("StrongsHebrew" (:plain dtk-dict-strongs-parse)))
-  "DTK-MODULE-MAP is a list which maps modules to parsers of diatheke output. Each list member has the form (module-name module-type parsers). The module category is a string such as 'Biblical Texts', 'Commentaries', or 'Dictionaries'. The corresponding parsers are specified as a plist where, for each entry, the key is keyword for a valid DIATHEKE-OUTPUT-FORMAT value (see the docstring for DTK-DIATHEKE) and the value is a symbol indicating the corresponding parser, a function which accepts a list of lines -- 'raw' diatheke output, presumably in the indicated format.")
+    ;; key: string for module or module category
+    ("Biblical Texts" dtk-bible-retriever dtk-bible-parser dtk-insert-verses)
+    ;("Daily" dtk-daily-retrieve dtk-daily-parse dtk-daily-insert)
+    )
+  "DTK-MODULE-MAP is an alist where each key is a string corresponding
+either to a module category or a module. It serves to map each module,
+or module category, to a retriever, parser, and inserter. Each list
+member has the form (key retriever parser inserter). Modules and
+module categories are specified with string suchs as 'KJV', 'ESV2011',
+'Biblical Texts', or 'Commentaries'."
+  )
 
 (defun dtk-module-map-entry (module-name)
   "Return the member of DTK-MODULE-MAP describing the module specified by MODULE-NAME."
-  (assoc module-name dtk-module-map))
+  (assoc module-name dtk-module-map2))
 
 (defun dtk-module-map-get-parser (module-name format)
   "Return the parser description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
   (plist-get (cl-second (dtk-module-map-entry module-name))
 	     format))
+
+(defun dtk-module-map-get-inserter (module-name)
+  "Return the inserter description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
+  (cl-third (rest (dtk-module-map-entry module-name))))
+
+(defun dtk-module-map-get-parser (module-name)
+  "Return the parser description associated with the module specified by MODULE-NAME."
+  (cl-second (rest (dtk-module-map-entry module-name))))
+
+(defun dtk-module-map-get-retriever (module-name)
+  "Return the retriever description associated with the module specified by MODULE-NAME."
+  (cl-first (rest (dtk-module-map-entry module-name))))
 
 (defun dtk-module-names (module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY. If MODULE-CATEGORY is :all, return all module names across all categories."
@@ -531,7 +553,7 @@ member of the value returned by DTK-MODULELIST."
   (let ((module (dtk-select-module-of-type "Module: " dtk-module-category)))
     (if module
 	(progn
-	  (setf dtk-module module)
+	  (dtk-set-module module)
 	  (dtk-module-remember-selection))
       (message "Module not selected"))))
 
@@ -545,6 +567,22 @@ member of the value returned by DTK-MODULELIST."
                      nil
                      nil
                      '(nil))))
+
+(defun dtk-set-module (module)
+  (setq dtk-module module)
+  ;; Set retriever, parser, inserter values
+  (cond ((dtk-module-map-entry module)
+	 (setq dtk-parser (dtk-module-map-get-parser2 module))
+	 (setq dtk-retriever (dtk-module-map-get-retriever module))
+	 (setq dtk-inserter (dtk-module-map-get-inserter module)))
+	;; Use category entry as fallback if an entry isn't present for a specific module
+	((dtk-module-map-entry (dtk-module-get-category-for-module module))
+	 (let ((category (dtk-module-get-category-for-module module)))
+	   (setq dtk-parser (dtk-module-map-get-parser2 category))
+	   (setq dtk-retriever (dtk-module-map-get-retriever category))
+	   (setq dtk-inserter (dtk-module-map-get-inserter category))))
+	(t (message "Specify parser, retriever, and inserter for the module"))
+	))
 
 ;;;
 ;;; dtk buffers
