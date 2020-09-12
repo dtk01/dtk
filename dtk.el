@@ -501,12 +501,16 @@ DTK-INSERTER."
 
 (defun dtk-modules-in-category (category)
   "Return a list of module names associated with module category CATEGORY."
-  (let ((biblical-text-modules
-	 (cdr (dtk-module-category category))))
+  (dtk-module-names-from-modulelist-entry (dtk-module-category category)))
+
+(defun dtk-module-names-from-modulelist-entry (modulelist-entry)
+  "Return a list of module names. MODULELIST-ENTRY has the form of a
+member of the value returned by DTK-MODULELIST."
+  (let ((module-descriptions (cdr modulelist-entry)))
     (mapcar
      #'(lambda (modulename-description)
 	 (elt modulename-description 0))
-     biblical-text-modules)))
+     module-descriptions)))
 
 ;;;###autoload
 (defun dtk-select-module-category ()
