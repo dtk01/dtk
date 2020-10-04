@@ -460,7 +460,7 @@ module categories are specified with string suchs as 'KJV', 'ESV2011',
 
 (defun dtk-module-map-entry (module-name)
   "Return the member of DTK-MODULE-MAP describing the module specified by MODULE-NAME."
-  (assoc module-name dtk-module-map2))
+  (assoc module-name dtk-module-map))
 
 (defun dtk-module-map-get-parser (module-name format)
   "Return the parser description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
