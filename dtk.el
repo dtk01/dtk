@@ -674,7 +674,8 @@ member of the value returned by DTK-MODULELIST."
 			      (append
 			       (list 'dict (list strongs-number module))
 			       text-props)))))
-	    strongs-refs)))
+	    strongs-refs)
+    text-props))
 
 (defun dtk-insert-osis-string (string)
   ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
