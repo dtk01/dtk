@@ -572,13 +572,13 @@ member of the value returned by DTK-MODULELIST."
   (setq dtk-module module)
   ;; Set retriever, parser, inserter values
   (cond ((dtk-module-map-entry module)
-	 (setq dtk-parser (dtk-module-map-get-parser2 module))
+	 (setq dtk-parser (dtk-module-map-get-parser module))
 	 (setq dtk-retriever (dtk-module-map-get-retriever module))
 	 (setq dtk-inserter (dtk-module-map-get-inserter module)))
 	;; Use category entry as fallback if an entry isn't present for a specific module
 	((dtk-module-map-entry (dtk-module-get-category-for-module module))
 	 (let ((category (dtk-module-get-category-for-module module)))
-	   (setq dtk-parser (dtk-module-map-get-parser2 category))
+	   (setq dtk-parser (dtk-module-map-get-parser category))
 	   (setq dtk-retriever (dtk-module-map-get-retriever category))
 	   (setq dtk-inserter (dtk-module-map-get-inserter category))))
 	(t (message "Specify parser, retriever, and inserter for the module"))
