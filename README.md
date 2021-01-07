@@ -53,8 +53,8 @@ An example `use-package` configuration:
 (use-package dtk
   :bind (("C-c B" . dtk-bible))
   :custom
-  (dtk-default-module "KJV")
-  (dtk-default-module-category "Biblical Texts")
+  (dtk-module "KJV")
+  (dtk-module-category "Biblical Texts")
   (dtk-word-wrap t)
   )
 ```
