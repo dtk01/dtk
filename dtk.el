@@ -457,11 +457,13 @@ DTK-INSERTER."
     ;("Daily" dtk-daily-retrieve dtk-daily-parse dtk-daily-insert)
     )
   "DTK-MODULE-MAP is an alist where each key is a string corresponding
-either to a module category or a module. It serves to map each module,
-or module category, to a retriever, parser, and inserter. Each list
-member has the form (key retriever parser inserter). Modules and
-module categories are specified with string suchs as 'KJV', 'ESV2011',
-'Biblical Texts', or 'Commentaries'."
+either to a module category or a module. Modules and module categories
+are specified with string suchs as 'KJV', 'ESV2011', 'Biblical Texts',
+or 'Commentaries'. Each entry maps a module or module category to a
+retriever, a parser, an inserter, and, optionally, a mode. Each list
+member has the form (key retriever parser inserter) or (key retriever
+parser inserter mode). A mode, if specified, must be specified by the
+corresponding symbol."
   )
 
 (defun dtk-module-map-entry (module-name)
