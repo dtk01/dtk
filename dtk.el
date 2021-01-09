@@ -471,6 +471,16 @@ module categories are specified with string suchs as 'KJV', 'ESV2011',
   "Return the inserter description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
   (cl-third (rest (dtk-module-map-entry module-name))))
 
+(defun dtk-module-map-get-mode (module-spec)
+  "Return the mode specification, if any, associated with the module or module category specified by MODULE-SPEC."
+  (let ((module-map-entry (dtk-module-map-entry module-spec)))
+    (when (and module-map-entry (>= (length module-map-entry) 5))
+      (let ((mode (cl-fifth module-map-entry)))
+	;; Handling it this way means it could be any function, not necessarily a mode
+	(if (symbolp mode)
+	    mode
+	    (error "%s" "The corresponding mode must be specified as a symbol."))))))
+
 (defun dtk-module-map-get-parser (module-name)
   "Return the parser description associated with the module specified by MODULE-NAME."
   (cl-second (rest (dtk-module-map-entry module-name))))
