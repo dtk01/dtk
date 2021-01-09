@@ -193,18 +193,24 @@ thing made that was made."
 (defun dtk-go-to (&optional book chapter verse)
   "Facilitate the selection of one or more verses via book (BOOK), chapter number (CHAPTER), and verse number (VERSE). If BOOK is NIL, query user to determine value to use for BOOK, CHAPTER, and VERSE. Return NIL if specified module is not available."
   (interactive)
-  (if (dtk-module-available-p dtk-module)
-      ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
-      (if (or (dtk-bible-module-available-p dtk-module)
-	      (dtk-commentary-module-available-p dtk-module))
-	  (dtk-bible book chapter verse t)
-	(dtk-other))
-    (progn
-      (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
-	       dtk-module
-	       (key-description (elt (where-is-internal 'dtk-select-module dtk-mode-map) 0))
-	       (dtk-module-names dtk-module-category))
-      nil)))
+  (cond ((dtk-module-available-p dtk-module)
+	 ;; Set mode if mode is specified via DTK-MODULE-MAP
+	 ;; A specific module takes priority over an entry for a category
+	 (let ((mode (or (dtk-module-map-get-mode dtk-module)
+			 (dtk-module-map-get-mode dtk-module-category))))
+	   ;; treating MODE this way means it could be any function
+	   (when mode (funcall mode)))
+	 ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
+	 (if (or (dtk-bible-module-available-p dtk-module)
+		 (dtk-commentary-module-available-p dtk-module))
+	     (dtk-bible book chapter verse t)
+	   (dtk-other)))
+	(t
+	 (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
+		  dtk-module
+		  (key-description (elt (where-is-internal 'dtk-select-module dtk-mode-map) 0))
+		  (dtk-module-names dtk-module-category))
+	 nil)))
 
 (defmacro with-dtk-module (module &rest body)
   "Temporarily consider module MODULE as the default module."
