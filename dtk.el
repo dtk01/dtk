@@ -439,7 +439,7 @@ DTK-INSERTER."
   (cl-loop
    for modulelist-entry in (dtk-modulelist)
    if (member module (dtk-module-names-from-modulelist-entry modulelist-entry))
-   do (return (first modulelist-entry))))
+   do (cl-return (cl-first modulelist-entry))))
 
 (defvar dtk-module-last-selection nil
   "A plist specifying the last selection of a module by module category.")
@@ -469,15 +469,15 @@ module categories are specified with string suchs as 'KJV', 'ESV2011',
 
 (defun dtk-module-map-get-inserter (module-name)
   "Return the inserter description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
-  (cl-third (rest (dtk-module-map-entry module-name))))
+  (cl-third (cl-rest (dtk-module-map-entry module-name))))
 
 (defun dtk-module-map-get-parser (module-name)
   "Return the parser description associated with the module specified by MODULE-NAME."
-  (cl-second (rest (dtk-module-map-entry module-name))))
+  (cl-second (cl-rest (dtk-module-map-entry module-name))))
 
 (defun dtk-module-map-get-retriever (module-name)
   "Return the retriever description associated with the module specified by MODULE-NAME."
-  (cl-first (rest (dtk-module-map-entry module-name))))
+  (cl-first (cl-rest (dtk-module-map-entry module-name))))
 
 (defun dtk-module-names (module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY. If MODULE-CATEGORY is :all, return all module names across all categories."
