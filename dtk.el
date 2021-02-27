@@ -193,18 +193,24 @@ thing made that was made."
 (defun dtk-go-to (&optional book chapter verse)
   "Facilitate the selection of one or more verses via book (BOOK), chapter number (CHAPTER), and verse number (VERSE). If BOOK is NIL, query user to determine value to use for BOOK, CHAPTER, and VERSE. Return NIL if specified module is not available."
   (interactive)
-  (if (dtk-module-available-p dtk-module)
-      ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
-      (if (or (dtk-bible-module-available-p dtk-module)
-	      (dtk-commentary-module-available-p dtk-module))
-	  (dtk-bible book chapter verse t)
-	(dtk-other))
-    (progn
-      (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
-	       dtk-module
-	       (key-description (elt (where-is-internal 'dtk-select-module dtk-mode-map) 0))
-	       (dtk-module-names dtk-module-category))
-      nil)))
+  (cond ((dtk-module-available-p dtk-module)
+	 ;; Set mode if mode is specified via DTK-MODULE-MAP
+	 ;; A specific module takes priority over an entry for a category
+	 (let ((mode (or (dtk-module-map-get-mode dtk-module)
+			 (dtk-module-map-get-mode dtk-module-category))))
+	   ;; treating MODE this way means it could be any function
+	   (when mode (funcall mode)))
+	 ;; Both `Commentaries` and `Biblical Texts` are references by book, chapter, and verse
+	 (if (or (dtk-bible-module-available-p dtk-module)
+		 (dtk-commentary-module-available-p dtk-module))
+	     (dtk-bible book chapter verse t)
+	   (dtk-other)))
+	(t
+	 (message "Module %s is not available. Use dtk-select-module (bound to '%s' in dtk mode) to select a different module. Available modules include %s"
+		  dtk-module
+		  (key-description (elt (where-is-internal 'dtk-select-module dtk-mode-map) 0))
+		  (dtk-module-names dtk-module-category))
+	 nil)))
 
 (defmacro with-dtk-module (module &rest body)
   "Temporarily consider module MODULE as the default module."
@@ -447,37 +453,44 @@ DTK-INSERTER."
 (defvar dtk-module-map
   '(
     ;; key: string for module or module category
-    ("Biblical Texts" dtk-bible-retriever dtk-bible-parser dtk-insert-verses)
+    ("Biblical Texts" :retriever dtk-bible-retriever :parser dtk-bible-parser :inserter dtk-insert-verses)
     ;("Daily" dtk-daily-retrieve dtk-daily-parse dtk-daily-insert)
     )
   "DTK-MODULE-MAP is an alist where each key is a string corresponding
-either to a module category or a module. It serves to map each module,
-or module category, to a retriever, parser, and inserter. Each list
-member has the form (key retriever parser inserter). Modules and
-module categories are specified with string suchs as 'KJV', 'ESV2011',
-'Biblical Texts', or 'Commentaries'."
+either to a module category or a module. Modules and module categories
+are specified with string suchs as 'KJV', 'ESV2011', 'Biblical Texts',
+or 'Commentaries'. Each entry maps a module or module category to a
+key-value store which specifies a retriever, a parser, an inserter,
+and/or a mode (legitimate keys are keywords :retriever, :parser,
+:inserter, and :mode). A mode, if specified, must be specified by the
+corresponding symbol."
   )
 
 (defun dtk-module-map-entry (module-name)
   "Return the member of DTK-MODULE-MAP describing the module specified by MODULE-NAME."
   (assoc module-name dtk-module-map))
 
-(defun dtk-module-map-get-parser (module-name format)
-  "Return the parser description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
-  (plist-get (cl-second (dtk-module-map-entry module-name))
-	     format))
-
 (defun dtk-module-map-get-inserter (module-name)
   "Return the inserter description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
-  (cl-third (cl-rest (dtk-module-map-entry module-name))))
+  (plist-get (cl-rest (dtk-module-map-entry module-name)) :inserter))
+
+(defun dtk-module-map-get-mode (module-spec)
+  "Return the mode specification, if any, associated with the module or module category specified by MODULE-SPEC."
+  (let ((module-map-entry (dtk-module-map-entry module-spec)))
+    (when module-map-entry
+      (let ((mode (plist-get (cl-rest module-map-entry) :mode)))
+	;; The mode should be specified as a symbol
+	(if (symbolp mode)
+	    mode
+	    (error "%s" "The corresponding mode must be specified as a symbol."))))))
 
 (defun dtk-module-map-get-parser (module-name)
   "Return the parser description associated with the module specified by MODULE-NAME."
-  (cl-second (cl-rest (dtk-module-map-entry module-name))))
+  (plist-get (cl-rest (dtk-module-map-entry module-name)) :parser))
 
 (defun dtk-module-map-get-retriever (module-name)
   "Return the retriever description associated with the module specified by MODULE-NAME."
-  (cl-first (cl-rest (dtk-module-map-entry module-name))))
+  (plist-get (cl-rest (dtk-module-map-entry module-name)) :retriever))
 
 (defun dtk-module-names (module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY. If MODULE-CATEGORY is :all, return all module names across all categories."
