@@ -604,6 +604,10 @@ member of the value returned by DTK-MODULELIST."
   "Return an indication of whether the default dtk buffer exists."
   (get-buffer dtk-buffer-name))
 
+(defun dtk-clear-buffer (buffer-name)
+  (with-current-buffer buffer-name
+    (delete-region (point-min) (point-max))))
+
 (defun dtk-clear-dtk-buffer ()
   "Clear the dtk buffer."
   (interactive)
