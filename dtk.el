@@ -611,13 +611,11 @@ member of the value returned by DTK-MODULELIST."
 (defun dtk-clear-dtk-buffer ()
   "Clear the dtk buffer."
   (interactive)
-  (with-current-buffer dtk-buffer-name
-    (delete-region (point-min) (point-max))))
+  (dtk-clear-buffer dtk-buffer-name))
 
 (defun dtk-clear-search-buffer ()
   "Clear the search buffer."
-  (with-current-buffer dtk-search-buffer-name
-    (delete-region (point-min) (point-max))))
+  (dtk-clear-buffer dtk-search-buffer-name))
 
 (defun dtk-init ()
   "Initialize dtk buffer, if necessary. Switch to the dtk buffer."
