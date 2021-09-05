@@ -453,7 +453,10 @@ DTK-INSERTER."
 (defvar dtk-module-map
   '(
     ;; key: string for module or module category
-    ("Biblical Texts" :retriever dtk-bible-retriever :parser dtk-bible-parser :inserter dtk-insert-verses)
+    ("Biblical Texts" :retriever dtk-bible-retriever
+                      :parser dtk-bible-parser
+                      :inserter dtk-insert-verses
+		      )
     ;("Daily" dtk-daily-retrieve dtk-daily-parse dtk-daily-insert)
     )
   "DTK-MODULE-MAP is an alist where each key is a string corresponding
