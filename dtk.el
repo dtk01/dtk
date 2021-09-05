@@ -470,27 +470,23 @@ corresponding symbol."
   "Return the member of DTK-MODULE-MAP describing the module specified by MODULE-NAME."
   (assoc module-name dtk-module-map))
 
-(defun dtk-module-map-get-inserter (module-name)
-  "Return the inserter description associated with the module specified by MODULE-NAME. FORMAT is a keyword. See the DTK-DIATHEKE docstring description of DIATHEKE-OUTPUT-FORMAT for specifics."
-  (plist-get (cl-rest (dtk-module-map-entry module-name)) :inserter))
+(defun dtk-module-map-get (module-spec key)
+  "Return the specified value, if any, associated with the module specified by MODULE-SPEC."
+  (plist-get (cl-rest (dtk-module-map-entry module-spec))
+	     key))
 
 (defun dtk-module-map-get-mode (module-spec)
   "Return the mode specification, if any, associated with the module or module category specified by MODULE-SPEC."
-  (let ((module-map-entry (dtk-module-map-entry module-spec)))
-    (when module-map-entry
-      (let ((mode (plist-get (cl-rest module-map-entry) :mode)))
-	;; The mode should be specified as a symbol
-	(if (symbolp mode)
-	    mode
-	    (error "%s" "The corresponding mode must be specified as a symbol."))))))
-
-(defun dtk-module-map-get-parser (module-name)
-  "Return the parser description associated with the module specified by MODULE-NAME."
-  (plist-get (cl-rest (dtk-module-map-entry module-name)) :parser))
-
-(defun dtk-module-map-get-retriever (module-name)
-  "Return the retriever description associated with the module specified by MODULE-NAME."
-  (plist-get (cl-rest (dtk-module-map-entry module-name)) :retriever))
+  (let ((mode (dtk-module-map-get module-spec :mode)))
+    (cond ((not mode)
+           ;; Fall back to module category if mode is not specified
+           ;; for a specific module
+           (dtk-module-map-get-mode dtk-module-category))
+          ;; The mode should be specified as a symbol
+          ((symbolp mode)
+           mode)
+          (mode
+           (error "%s" "The corresponding mode must be specified as a symbol.")))))
 
 (defun dtk-module-names (module-category)
   "Return a list of strings, each corresponding to a module name within the module category specified by MODULE-CATEGORY. If MODULE-CATEGORY is :all, return all module names across all categories."
@@ -585,15 +581,15 @@ member of the value returned by DTK-MODULELIST."
   (setq dtk-module module)
   ;; Set retriever, parser, inserter values
   (cond ((dtk-module-map-entry module)
-	 (setq dtk-parser (dtk-module-map-get-parser module))
-	 (setq dtk-retriever (dtk-module-map-get-retriever module))
-	 (setq dtk-inserter (dtk-module-map-get-inserter module)))
+	 (setq dtk-parser (dtk-module-map-get module :parser))
+	 (setq dtk-retriever (dtk-module-map-get module :retriever))
+	 (setq dtk-inserter (dtk-module-map-get module :inserter)))
 	;; Use category entry as fallback if an entry isn't present for a specific module
 	((dtk-module-map-entry (dtk-module-get-category-for-module module))
 	 (let ((category (dtk-module-get-category-for-module module)))
-	   (setq dtk-parser (dtk-module-map-get-parser category))
-	   (setq dtk-retriever (dtk-module-map-get-retriever category))
-	   (setq dtk-inserter (dtk-module-map-get-inserter category))))
+	   (setq dtk-parser (dtk-module-map-get category :parser))
+	   (setq dtk-retriever (dtk-module-map-get category :retriever))
+	   (setq dtk-inserter (dtk-module-map-get category :inserter))))
 	(t (message "Specify parser, retriever, and inserter for the module"))
 	))
 
@@ -1094,7 +1090,7 @@ OSIS XML document."
 
 (defun dtk-dict-handle-raw-lines (lines module format)
   "Helper function for DTK-DICTIONARY. Parses content in list of strings, LINES, corresponding to lines of diatheke output associated with a dictionary query in diatheke module MODULE. Returns NIL if unsuccessful. Returns a dict-entry structure if successful. Argument FORMAT specifies the anticipated format of LINES."
-  (let ((parser (dtk-module-map-get-parser module format)))
+  (let ((parser (dtk-module-map-get module :parser)))
     (cond (parser (funcall parser lines))
 	  (t
 	   (message "Missing parser for %s" module)
