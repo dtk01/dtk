@@ -952,6 +952,21 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 			  nil)))
 	  (forward-char)))))
 
+(defun dtk-view-text (clear-buffer-p dtk-buffer-p module)
+  (interactive)
+  ;; If dtk-buffer-p is true, insert text in the default dtk buffer.
+  ;; Otherwise, use the current buffer.
+  (when dtk-buffer-p
+    (cond ((not (dtk-buffer-exists-p))
+	   (dtk-init))
+	  (t
+	   (switch-to-buffer dtk-buffer-name))))
+  (when clear-buffer-p
+    (dtk-clear-buffer (current-buffer)))
+  (dtk-set-module module)
+  (dtk-set-mode)
+  (dtk-retrieve-parse-insert (current-buffer)))
+
 ;;
 ;; parse diatheke raw text from a "Biblical Texts" text
 ;;
