@@ -518,7 +518,10 @@ funcallable entity to invoke prior to retrieving the text."
     (cond ((not mode)
            ;; Fall back to module category if mode is not specified
            ;; for a specific module
-           (dtk-module-map-get-mode dtk-module-category))
+	   (if (dtk-module-get-category-for-module module-spec)
+	       (setq mode
+		     (dtk-module-map-get-mode
+		      (dtk-module-get-category-for-module module-spec)))))
           ;; The mode should be specified as a symbol
           ((symbolp mode)
            mode)
