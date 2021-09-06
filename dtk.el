@@ -476,7 +476,7 @@ DTK-INSERTER."
     ("Biblical Texts" :retriever dtk-bible-retriever
                       :parser dtk-bible-parser
                       :inserter dtk-insert-verses
-		      )
+                      :retrieve-setup dtk-bible-retrieve-setup)
     ;("Daily" dtk-daily-retrieve dtk-daily-parse dtk-daily-insert)
     )
   "DTK-MODULE-MAP is an alist where each key is a string corresponding
@@ -484,9 +484,9 @@ either to a module category or a module. Modules and module categories
 are specified with string suchs as 'KJV', 'ESV2011', 'Biblical Texts',
 or 'Commentaries'. Each entry maps a module or module category to a
 key-value store which specifies a retriever, a parser, an inserter,
-and/or a mode (legitimate keys are keywords :retriever, :parser,
-:inserter, and :mode). A mode, if specified, must be specified by the
-corresponding symbol."
+and/or a mode. The mode, if specified, is specified by the
+corresponding symbol. :RETRIEVE-SETUP, if specified, specifies a
+funcallable entity to invoke prior to retrieving the text."
   )
 
 (defun dtk-module-map-entry (module-name)
