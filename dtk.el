@@ -660,6 +660,14 @@ member of the value returned by DTK-MODULELIST."
   "Ensure the default dtk buffer exists for conducting a search."
   (get-buffer-create dtk-search-buffer-name))
 
+(defun dtk-set-mode ()
+  "If a mode is specified for the current module, set it for the
+current buffer. Fall back to the module category if a mode is not
+specified for a specific module."
+  (let ((mode (dtk-module-map-get-mode dtk-module)))
+    (when mode
+      (funcall mode))))
+
 (defun dtk-switch-to-search-buffer ()
   "Switch to the dtk search buffer using SWITCH-TO-BUFFER."
   (switch-to-buffer dtk-search-buffer-name))
