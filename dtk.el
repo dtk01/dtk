@@ -359,6 +359,26 @@ diatheke."
     (re-search-backward "^:" nil t 1)
     (delete-region (point) end-point)))
 
+(defun dtk-bible-retrieve-setup (&optional book chapter verse dtk-buffer-p)
+  "BOOK is a string. CHAPTER is an integer. VERSE is an integer. If
+BOOK is not specified, rely on interacting via the minibuffer to
+obtain book, chapter, and verse. Set DTK-BIBLE-BOOK and
+DTK-BIBLE-CHAPTER-VERSE."
+  (interactive)
+  (let* ((completion-ignore-case t)
+         (final-book    (or book
+                            (setq dtk--recent-book
+                                  (completing-read "Book: " dtk-books nil nil nil nil dtk--recent-book))))
+         (final-chapter (or (when chapter (number-to-string chapter))
+                            (read-from-minibuffer "Chapter: ")))
+         (final-verse   (or (when verse (number-to-string verse))
+                            (read-from-minibuffer "Verse: ")))
+         (chapter-verse (concat final-chapter ":" final-verse)))
+    ;; Expose these values to the retriever
+    (setq dtk-bible-book final-book)
+    (setq dtk-bible-chapter-verse chapter-verse)
+    ))
+
 (defun dtk-other ()
   "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
   (error "Unsupported"))
