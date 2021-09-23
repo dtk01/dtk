@@ -1727,12 +1727,7 @@ NIL if unable to move forward in the described manner."
 ;;;
 ;;; miscellany
 ;;;
-(defun dtk-random-point ()
-  "Choose a book, at random, in DTK-BOOKS, and then navigate to a random point within that book."
-  (interactive)
-  (let ((book (elt dtk-books (random (length dtk-books)))))
-    (dtk-go-to book nil nil)
-    (goto-char (random (point-max)))))
+
 
 ;;;
 ;;; utility functions
