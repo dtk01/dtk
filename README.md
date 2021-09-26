@@ -37,7 +37,7 @@ The `*dtk*` buffer enables `dtk-mode` and provides the following keybindings:
 | M     | `dtk-select-module-category` | Select type of text (Bible text, Commentaries, Dictionaries..)                 |
 | m     | `dtk-select-module`          | Select module (Bible versions)                                                 |
 | s     | `dtk-search`                 | Search text                                                                    |
-| S     | `dtk-show-dict-entry`        | Show Strong's dictionary data for word at point                                |
+| d     | `dtk-dict`                   | Show dictionary data for word at point                                         |
 | q     | `dtk-quit`                   | Quit buffer                                                                    |
 | x     | `dtk-follow`                 | Insert the corresponding verse into dtk buffer if point is under full citation |
 | C-M-b | `dtk-backward-chapter`       | Move point to previous chapter                                                 |
@@ -61,7 +61,7 @@ An example `use-package` configuration:
 
 ## Performing a dictionary lookup
 
-Some texts have dictionary references embedded in the texts. For these texts, dictionary lookups may be available. By default, <kbd>S</kbd> will, by invoking `dtk-show-dict-entry`, display the related dictionary entry, if that entry is available.
+Some texts have dictionary references embedded in the texts. For these texts, dictionary lookups may be available. By default, <kbd>d</kbd> will, by invoking `dtk-dict`, display the related dictionary entry, if that entry is available.
 
 ### Searching within a text
 
