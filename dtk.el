@@ -205,7 +205,8 @@ the user for the desired module. Use the values specified in
 DTK-MODULE-MAP to navigate to the desired text."
   (interactive)
   (let* ((completion-ignore-case t)
-         (final-module  (or (if current-prefix-arg ;; Called with prefix argument
+         (final-module  (or (if (or current-prefix-arg ; Called with prefix argument
+				    (not dtk-module))
                                 (completing-read "Module: " (dtk-module-names
                                                              dtk-module-category)
                                                  nil t nil nil '(nil)))
