@@ -762,8 +762,12 @@ specified for a specific module."
 	 ;; the "gloss" attribute used to support inclusion of
 	 ;; Strong's numbers. The reality seems to be that the "lemma"
 	 ;; attribute is used to support inclusion of Strong's numbers
-	 ;; for Biblical texts.
-	 (let ((lemma (let ((lemma-pair (assoc 'lemma attributes)))
+	 ;; for Biblical texts. The whole thing is pretty tenuous
+	 ;; since the devs make it clear these attributes are not to
+	 ;; be relied upon. The latest-greatest attribute appears to
+	 ;; be "savlm".
+	 (let ((lemma (let ((lemma-pair (or (assoc 'lemma attributes)
+					    (assoc 'savlm attributes))))
 			(if lemma-pair
 			    (cdr lemma-pair)))))
 	   (let ((beg (point)))
