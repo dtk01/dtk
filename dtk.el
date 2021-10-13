@@ -599,14 +599,16 @@ member of the value returned by DTK-MODULELIST."
 	(setf dtk-module-category module-category))))
 
 ;;;###autoload
-(defun dtk-select-module ()
-  "Prompt the user to select a module."
+(defun dtk-select-module (&optional prompt)
+  "Prompt the user to select a module. Return the selected module value."
   (interactive)
-  (let ((module (dtk-select-module-of-type "Module: " dtk-module-category)))
+  (let ((module (dtk-select-module-of-type (or prompt "Module: ")
+					   dtk-module-category)))
     (if module
 	(progn
 	  (dtk-set-module module)
-	  (dtk-module-remember-selection))
+	  (dtk-module-remember-selection dtk-module-category module)
+	  module)
       (message "Module not selected"))))
 
 (defun dtk-select-module-of-type (prompt module-category)
