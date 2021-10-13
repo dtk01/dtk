@@ -1257,8 +1257,10 @@ OSIS XML document."
   (let* ((dict-module-category "Lexicons / Dictionaries")
 	 (dict-module (or (if (equal dtk-module-category dict-module-category)
 			      dtk-module)
-			  (lax-plist-get dtk-module-last-selection dict-module-category)
-			  (dtk-select-module-of-type "First select a module: " dict-module-category))))
+			  (lax-plist-get dtk-module-last-selection
+					 dict-module-category)
+			  (let ((dtk-module-category dict-module-category))
+			    (dtk-select-module "First select a module: ")))))
     (cond (dict-module
 	   (let ((key-module-note (dtk-dict-key-for-word-at-point dict-module))
 		 (format :plain))
