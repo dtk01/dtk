@@ -83,7 +83,7 @@ thing made that was made."
   "Module currently in use.")
 
 (defcustom dtk-module-category nil
-  "Module category last selected by the user.")
+  "Module category currently in use.")
 
 ;;;;; Internal variables
 (defcustom dtk--recent-book nil
