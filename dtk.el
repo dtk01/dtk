@@ -545,9 +545,11 @@ funcallable entity to invoke prior to retrieving the text."
 		 (cdr (assoc (or module-category dtk-module-category)
 			     (dtk-modulelist)))))))
 
-(defun dtk-module-remember-selection ()
-  "Remember the module last selected by the user."
-  (setq dtk-module-last-selection (lax-plist-put dtk-module-last-selection dtk-module-category dtk-module)))
+(defun dtk-module-remember-selection (module-category module)
+  "Remember the module last selected by the user in the module category MODULE-CATEGORY."
+  (setq dtk-module-last-selection (lax-plist-put dtk-module-last-selection
+						 module-category
+						 module)))
 
 (defun dtk-modulelist ()
   "Return an alist where each key is a string corresponding to a category and each value is a list of lists. Each value represents a set of modules. Each module is described by a list of the form (\"Nave\" \"Nave's Topical Bible\")."
