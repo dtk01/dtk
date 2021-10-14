@@ -493,6 +493,8 @@ DTK-INSERTER."
                       :inserter dtk-insert-verses
                       :retrieve-setup dtk-bible-retrieve-setup)
     ;("Daily" dtk-daily-retrieve dtk-daily-parse dtk-daily-insert)
+    ("StrongsGreek"   :parser dtk-dict-strongs-parse)
+    ("StrongsHebrew"  :parser dtk-dict-strongs-parse)
     )
   "DTK-MODULE-MAP is an alist where each key is a string corresponding
 either to a module category or a module. Modules and module categories
