@@ -568,11 +568,17 @@ funcallable entity to invoke prior to retrieving the text."
 	    (t
 	     ;; handle "modulename : moduledescription"
 	     (let ((colon-position (seq-position x 58)))
-	       (let ((modulename (seq-subseq x 0 (1- colon-position)))
-		     (module-description (seq-subseq x (+ 2 colon-position))))
-		 (setf (elt modules-by-category 0)
-		       (append (elt modules-by-category 0)
-			       (list (list modulename module-description)))))))))
+	       ;; Lack of a colon suggests something is awry
+	       (cond (colon-position
+		      (let ((modulename (seq-subseq x 0 (1- colon-position)))
+			    (module-description (seq-subseq x (+ 2 colon-position))))
+			(setf (elt modules-by-category 0)
+			      (append (elt modules-by-category 0)
+				      (list (list modulename module-description))))))
+		     (t (display-warning 'dtk
+					 "Inspect the value returned by (dtk-diatheke-string '(\"modulelist\") \"system\")"
+					 :warning)))
+	       ))))
     modules-by-category))
 
 (defun dtk-modules-in-category (category)
