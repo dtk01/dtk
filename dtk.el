@@ -1000,6 +1000,12 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 ;; sword-to-org project.
 (defconst dtk-sto--diatheke-parse-line-regexp
   (rx bol
+      ;; A <title>...</title> element may precede other content
+      (group-n 9 (zero-or-one "<title"
+			      (zero-or-more (not ?>))
+			      ">"
+			      (1+ anything)
+			      "</title>"))
       ;; Book name
       (group-n 1 (minimal-match (1+ anything)))
       space
@@ -1098,6 +1104,7 @@ OSIS XML document."
       (when (string-match dtk-sto--diatheke-parse-line-regexp line)
 	(let ((book (match-string 1 line))
 	      (chapter (string-to-number (match-string 2 line)))
+	      (title (match-string 9 line))
 	      (verse (string-to-number (match-string 3 line)))
 	      ;; Ensure text is present, which may not be the case if
 	      ;; a verse starts with a newline.  See
@@ -1130,6 +1137,7 @@ OSIS XML document."
 				   (xml-parse-region))))
             (cl-values current-line-n
 		       (list
+			:title title
 			:book book :chapter chapter :verse verse
 			:text (cl-subseq (car text-structured) 2)))))))))
 
