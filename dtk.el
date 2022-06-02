@@ -276,49 +276,6 @@ obtain book, chapter, and verse."
        (current-buffer)))
     ))
 
-(defun dtk-bible--insert-using-diatheke (book chapter-verse &optional module diatheke-output-format)
-  "Insert content specified by BOOK and CHAPTER-VERSE into the current buffer. CHAPTER-VERSE is a string of the form CC:VV (chapter number and verse number separated by the colon character).
-Optional argument MODULE specifies the module to use."
-  (unless diatheke-output-format
-    (setq diatheke-output-format :plain))
-  (let ((module (or module dtk-module)))
-    (insert
-     (with-temp-buffer
-       (dtk-diatheke (list book chapter-verse) module t diatheke-output-format nil)
-       (cond ((dtk-check-for-text-obesity)
-	      ;; Provides user the option to work with "raw" diatheke output
-	      (unless dtk-preserve-diatheke-output-p
-		;; Assume diatheke emits text and then emits
-		;; - zero or more empty lines followed by
-		;; - a line beginning with the colon character succeeded by the text of last verse (w/o reference) followed by
-		;; - a single line beginning with the ( character indicating the module (e.g., "(ESV2011)")
-		;; - followed by a zero or more newlines
-
-		;; Post-process texts
-		;; Search back and remove (<module name>)
-		(let ((end-point (point)))
-		  (re-search-backward "^(.*)" nil t 1)
-		  (delete-region (point) end-point))
-		;; Search back and remove duplicate text of last verse and the preceding colon
-		(let ((end-point (point)))
-		  (re-search-backward "^:" nil t 1)
-		  (delete-region (point) end-point))
-		;; Parse text
-		(let ((raw-diatheke-text (buffer-substring (point-min) (point-max))))
-		  ;; PARSED-LINES is a list where each member has the form
-		  ;; (:book "John" :chapter 1 :verse 1 :text (...))
-		  (let ((parsed-lines (cl-case diatheke-output-format
-					(:osis (dtk--parse-osis-xml-lines raw-diatheke-text))
-					(:plain (dtk-sto--diatheke-parse-text raw-diatheke-text)))))
-		    ;; replace diatheke output w/text from parsed-lines
-		    (delete-region (point-min) (point-max))
-		    (dtk-insert-verses parsed-lines))))
-	      ;; Return contents of the temporary buffer
-	      (buffer-string))
-	     (t ""))
-       )))
-  t)
-
 (defun dtk-bible-parser (raw-string)
   "Parse the string RAW-STRING. Return the parsed content as a plist."
   (cond ((member dtk-diatheke-output-format '(:kludge :osis :plain))
