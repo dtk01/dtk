@@ -75,6 +75,12 @@ Modules fall into a number of categories. Select the category of module which is
 Select the module of interest (e.g., KJV, ESV, or RNKJV) with <kbd>M-x</kbd> `dtk-select-module`. By default, this functionality is bound to <kbd>m</kbd>.
 
 
+## dtk-modules
+
+[dtk-modules](https://github.com/dtk01/dtk-modules) is intended as a repository for retriever-parser-inserter sets for additional diatheke-accessible content. [daily-light.el](https://github.com/dtk01/dtk-modules/blob/main/lexicons-dictionaries/daily-light.el) provides these for the Daily Light. Peruse the day's readings with <kbd>M-x</kbd> `dtk-daily`.
+
+
+
 ## See also
 
 [diatheke.el](https://github.com/JasonFruit/diatheke.el) is another interface to diatheke.
