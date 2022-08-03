@@ -199,7 +199,9 @@ thing made that was made."
 	       (elt book-chapter-verse 1)
 	       (elt book-chapter-verse 2))))
 
-(defun dtk-go-to (&optional book chapter verse)
+(defun dtk-go-to (&rest retrieve-setup-args
+		  ;&optional book chapter verse
+			    )
   "Take a cue from the current module, if specified; otherwise query
 the user for the desired module. Use the values specified in
 DTK-MODULE-MAP to navigate to the desired text."
@@ -215,7 +217,7 @@ DTK-MODULE-MAP to navigate to the desired text."
       (cond ((dtk-module-available-p dtk-module)
 	     (let ((retrieve-setup (or (dtk-module-map-get dtk-module :retrieve-setup)
 				       (dtk-module-map-get (dtk-module-get-category-for-module dtk-module) :retrieve-setup))))
-	       (if retrieve-setup (funcall retrieve-setup)))
+	       (if retrieve-setup (apply retrieve-setup retrieve-setup-args)))
 	     (dtk-view-text
 	      t				; clear-buffer-p
 	      t
