@@ -835,7 +835,7 @@ representation of a W element:
       ;; number. Assume that book will not change.
       (cl-loop
        for verse-plist in verse-plists
-       do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
+       do (-let (((&plist :book book :chapter chapter :title title :verse verse :text text) verse-plist))
 	    (if (equal chapter this-chapter)
 		(progn
 		  (unless (member (char-before) '(#x20 #x0a #x0d))
