@@ -1455,6 +1455,11 @@ corresponding to the key."
   "Face for marking chapter number."
   :group 'dtk-faces)
 
+(defface dtk-chapter-title
+  '((t (:foreground "gray50" :height 0.8)))
+  "Face for title text for a chapter."
+  :group 'dtk-faces)
+
 (defface dtk-verse-number
   '((t (:inherit font-lock-constant-face)))
   "Face for marking verse number."
