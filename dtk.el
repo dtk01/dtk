@@ -1093,10 +1093,11 @@ OSIS XML document."
 	  ;; Add root element and parse text as a single piece of XML
 	  (let ((text-structured (with-temp-buffer
 				   (insert "<r>" text-raw "</r>")
-				   (xml-parse-region))))
+				   (xml-parse-region)))
+		(title-structured (dtk-title-xml-to-plist title)))
             (cl-values current-line-n
 		       (list
-			:title title
+			:title title-structured
 			:book book :chapter chapter :verse verse
 			:text (cl-subseq (car text-structured) 2)))))))))
 
