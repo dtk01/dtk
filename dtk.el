@@ -965,9 +965,10 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 			      ">"
 			      (1+ anything)
 			      "</title>"))
+      (zero-or-one space)
       ;; Book name
       (group-n 1 (minimal-match (1+ anything)))
-      space
+      (zero-or-more space)
       ;; chapter:verse
       (group-n 2 (1+ digit)) ":" (group-n 3 (1+ digit)) ":"
       ;; Passage text (which may start with a newline, in which case
