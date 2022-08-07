@@ -825,7 +825,8 @@ representation of a W element:
     (let ((this-chapter nil)
 	  (first-verse-plist (pop verse-plists)))
       ;; handle first verse
-      (-let (((&plist :book book :chapter chapter :verse verse :text text) first-verse-plist))
+      (-let (((&plist :book book :chapter chapter :title title :verse verse :text text) first-verse-plist))
+	(if title (dtk-insert-title title))
 	(when dtk-insert-verses-pre
 	  (funcall dtk-insert-verses-pre book chapter verse verse-plists))
 	(dtk-verse-inserter book chapter verse text t t)
