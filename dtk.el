@@ -1100,6 +1100,23 @@ OSIS XML document."
 			:book book :chapter chapter :verse verse
 			:text (cl-subseq (car text-structured) 2)))))))))
 
+;;
+;; handling title element
+;;
+(defun dtk-title-xml-to-plist (title-element-string)
+  "TITLE-ELEMENT-STRING should be a string representation of an OSIS
+XML title element. Return a plist."
+  (let ((title-node (car (with-temp-buffer
+			   (insert title-element-string)
+			   (xml-parse-region)))))
+    (when title-node
+      (let ((title-node-attributes (xml-node-attributes title-node)))
+	(let ((canonical (cdr (assoc 'canonical
+				     (xml-node-attributes title-node))))
+	      (type (cdr (assoc 'type (xml-node-attributes title-node))))
+	      (title-text (dtk-xml-elt-char-data title-node t)))
+	  (list :canonical canonical :type type :text title-text))))))
+
 (defun dtk-xml-elt-char-data (element-node &optional descendp)
   "Return, as a string, the concatenated character data for element
 node ELEMENT-NODE. If DESCENDP is true, descend into child element nodes."
