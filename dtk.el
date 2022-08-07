@@ -1100,6 +1100,28 @@ OSIS XML document."
 			:book book :chapter chapter :verse verse
 			:text (cl-subseq (car text-structured) 2)))))))))
 
+(defun dtk-xml-elt-char-data (element-node &optional descendp)
+  "Return, as a string, the concatenated character data for element
+node ELEMENT-NODE. If DESCENDP is true, descend into child element nodes."
+  (with-temp-buffer
+    (dtk-%insert-xml-elt-char-data element-node descendp (if descendp 1))
+    (buffer-string)))
+
+(defun dtk-%insert-xml-elt-char-data (element-node
+				      &optional descendp descendp-count)
+  (let ((sanity-cap 20))
+    (when descendp
+      (if (> descendp-count sanity-cap)
+	  (error "past sanity cap"))
+      (incf descendp-count))
+    (dolist (child (xml-node-children element-node))
+      (cond ((stringp child)
+	     (insert child))
+	    ((and descendp
+		  ;; (xml-element-node-p child)
+		  (consp child))
+	     (%insert-xml-elt-char-data child descendp descendp-count))))))
+
 ;;
 ;; dictionary: handle dictionary entries and references
 ;;
