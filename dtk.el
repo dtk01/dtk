@@ -852,6 +852,12 @@ representation of a W element:
       (when dtk-insert-verses-post (funcall dtk-insert-verses-post))
       )))
 
+(defun dtk-insert-title (title)
+  (let ((title-start (point)))
+    (insert (plist-get title :text) ?\n)
+    (add-text-properties title-start (point)
+			 '(font-lock-face dtk-chapter-title))))
+
 (defvar dtk-insert-verses-pre nil
   "If non-NIL, this should define a function to invoke prior to
 inserting a set of verses via DTK-INSERT-VERSES. The function is
