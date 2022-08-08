@@ -1139,7 +1139,7 @@ node ELEMENT-NODE. If DESCENDP is true, descend into child element nodes."
     (when descendp
       (if (> descendp-count sanity-cap)
 	  (error "past sanity cap"))
-      (incf descendp-count))
+      (cl-incf descendp-count))
     (dolist (child (xml-node-children element-node))
       (cond ((stringp child)
 	     (insert child))
