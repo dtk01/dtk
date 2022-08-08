@@ -353,10 +353,6 @@ DTK-BIBLE-CHAPTER-VERSE."
     (setq dtk-bible-chapter-verse chapter-verse)
     ))
 
-(defun dtk-other ()
-  "Placeholder anticipating possibility of using diatheke to access content distinct from Biblical texts."
-  (error "Unsupported"))
-
 (defun dtk-retrieve-parse-insert (insert-into)
   "Invoke DTK-RETRIEVER, anticipating that the text of interest will
 be inserted into the buffer specified by INSERT-INTO. If
