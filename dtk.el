@@ -199,7 +199,9 @@ thing made that was made."
 	       (elt book-chapter-verse 1)
 	       (elt book-chapter-verse 2))))
 
-(defun dtk-go-to (&optional book chapter verse)
+(defun dtk-go-to (&rest retrieve-setup-args
+		  ;&optional book chapter verse
+			    )
   "Take a cue from the current module, if specified; otherwise query
 the user for the desired module. Use the values specified in
 DTK-MODULE-MAP to navigate to the desired text."
@@ -215,7 +217,7 @@ DTK-MODULE-MAP to navigate to the desired text."
       (cond ((dtk-module-available-p dtk-module)
 	     (let ((retrieve-setup (or (dtk-module-map-get dtk-module :retrieve-setup)
 				       (dtk-module-map-get (dtk-module-get-category-for-module dtk-module) :retrieve-setup))))
-	       (if retrieve-setup (funcall retrieve-setup)))
+	       (if retrieve-setup (apply retrieve-setup retrieve-setup-args)))
 	     (dtk-view-text
 	      t				; clear-buffer-p
 	      t
@@ -823,7 +825,8 @@ representation of a W element:
     (let ((this-chapter nil)
 	  (first-verse-plist (pop verse-plists)))
       ;; handle first verse
-      (-let (((&plist :book book :chapter chapter :verse verse :text text) first-verse-plist))
+      (-let (((&plist :book book :chapter chapter :title title :verse verse :text text) first-verse-plist))
+	(if title (dtk-insert-title title))
 	(when dtk-insert-verses-pre
 	  (funcall dtk-insert-verses-pre book chapter verse verse-plists))
 	(dtk-verse-inserter book chapter verse text t t)
@@ -832,7 +835,7 @@ representation of a W element:
       ;; number. Assume that book will not change.
       (cl-loop
        for verse-plist in verse-plists
-       do (-let (((&plist :book book :chapter chapter :verse verse :text text) verse-plist))
+       do (-let (((&plist :book book :chapter chapter :title title :verse verse :text text) verse-plist))
 	    (if (equal chapter this-chapter)
 		(progn
 		  (unless (member (char-before) '(#x20 #x0a #x0d))
@@ -849,6 +852,12 @@ representation of a W element:
 		(dtk-verse-inserter book chapter verse text nil t)))))
       (when dtk-insert-verses-post (funcall dtk-insert-verses-post))
       )))
+
+(defun dtk-insert-title (title)
+  (let ((title-start (point)))
+    (insert (plist-get title :text) ?\n)
+    (add-text-properties title-start (point)
+			 '(font-lock-face dtk-chapter-title))))
 
 (defvar dtk-insert-verses-pre nil
   "If non-NIL, this should define a function to invoke prior to
@@ -963,9 +972,10 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 			      ">"
 			      (1+ anything)
 			      "</title>"))
+      (zero-or-one space)
       ;; Book name
       (group-n 1 (minimal-match (1+ anything)))
-      space
+      (zero-or-more space)
       ;; chapter:verse
       (group-n 2 (1+ digit)) ":" (group-n 3 (1+ digit)) ":"
       ;; Passage text (which may start with a newline, in which case
@@ -1091,12 +1101,52 @@ OSIS XML document."
 	  ;; Add root element and parse text as a single piece of XML
 	  (let ((text-structured (with-temp-buffer
 				   (insert "<r>" text-raw "</r>")
-				   (xml-parse-region))))
+				   (xml-parse-region)))
+		(title-structured (dtk-title-xml-to-plist title)))
             (cl-values current-line-n
 		       (list
-			:title title
+			:title title-structured
 			:book book :chapter chapter :verse verse
 			:text (cl-subseq (car text-structured) 2)))))))))
+
+;;
+;; handling title element
+;;
+(defun dtk-title-xml-to-plist (title-element-string)
+  "TITLE-ELEMENT-STRING should be a string representation of an OSIS
+XML title element. Return a plist."
+  (let ((title-node (car (with-temp-buffer
+			   (insert title-element-string)
+			   (xml-parse-region)))))
+    (when title-node
+      (let ((title-node-attributes (xml-node-attributes title-node)))
+	(let ((canonical (cdr (assoc 'canonical
+				     (xml-node-attributes title-node))))
+	      (type (cdr (assoc 'type (xml-node-attributes title-node))))
+	      (title-text (dtk-xml-elt-char-data title-node t)))
+	  (list :canonical canonical :type type :text title-text))))))
+
+(defun dtk-xml-elt-char-data (element-node &optional descendp)
+  "Return, as a string, the concatenated character data for element
+node ELEMENT-NODE. If DESCENDP is true, descend into child element nodes."
+  (with-temp-buffer
+    (dtk-%insert-xml-elt-char-data element-node descendp (if descendp 1))
+    (buffer-string)))
+
+(defun dtk-%insert-xml-elt-char-data (element-node
+				      &optional descendp descendp-count)
+  (let ((sanity-cap 20))
+    (when descendp
+      (if (> descendp-count sanity-cap)
+	  (error "past sanity cap"))
+      (cl-incf descendp-count))
+    (dolist (child (xml-node-children element-node))
+      (cond ((stringp child)
+	     (insert child))
+	    ((and descendp
+		  ;; (xml-element-node-p child)
+		  (consp child))
+	     (%insert-xml-elt-char-data child descendp descendp-count))))))
 
 ;;
 ;; dictionary: handle dictionary entries and references
@@ -1410,6 +1460,11 @@ corresponding to the key."
 (defface dtk-chapter-number
   '((t (:inherit font-lock-constant-face)))
   "Face for marking chapter number."
+  :group 'dtk-faces)
+
+(defface dtk-chapter-title
+  '((t (:foreground "gray50" :height 0.8)))
+  "Face for title text for a chapter."
   :group 'dtk-faces)
 
 (defface dtk-verse-number
