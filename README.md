@@ -61,7 +61,7 @@ An example `use-package` configuration:
 
 ### Using in a Windows environment
 
-In a Windows environment, diatheke may not be in the search path for executables. If this is the case, you can explicitly provide the path to the executable by setting ~dtk-program~. For example, if Xiphos is installed, one might specify the diatheke executable location as follows:
+In a Windows environment, diatheke may not be in the search path for executables. If this is the case, you can explicitly provide the path to the executable by setting `dtk-program`. For example, if Xiphos is installed, one might specify the diatheke executable location as follows:
 
 	> (setf dtk-program "C:/Program Files (x86)/CrossWire/Xiphos/bin/diatheke.exe")
 	"C:/Program Files (x86)/CrossWire/Xiphos/bin/diatheke.exe"
