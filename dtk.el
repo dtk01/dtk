@@ -1640,7 +1640,8 @@ chapter text property value and X does not return a true value."
   (dtk-to-start-of-current-verse))
 
 (defun dtk-insert-chapter-at (bk ch at)
-  "Attempt to insert the indicated chapter at the start of the buffer. CH is a number."
+  "Attempt to insert the indicated chapter at the position specified
+by AT. CH is a number."
   (goto-char at)
   ;; Expose these values to the retriever
   (setq dtk-bible-book bk)
