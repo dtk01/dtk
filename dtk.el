@@ -665,20 +665,11 @@ specified for a specific module."
 ;;; interact with dtk buffers
 ;;;
 (defun dtk-verse-inserter (book ch verse text new-bk-p new-ch-p)
-  "Insert a verse associated book BOOK, chapter CH, verse number VERSE, and text TEXT. If this function is being invoked in the context of a change to a new book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P, respectively."
-  (let ((book-start (point)))
-    (when (or (not dtk-compact-view) new-bk-p)
-      (insert book #x20)
-      (set-text-properties book-start (point) (list 'book book)))
-    (when (or (not dtk-compact-view) new-ch-p)
-      (let ((chapter-start (point)))
-	(insert (int-to-string chapter)
-		(if verse #x3a #x20))
-	(add-text-properties (if new-ch-p
-				 chapter-start
-			       book-start)
-			     (point)
-			     (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
+  "Insert a verse associated book BOOK, chapter CH, verse number
+VERSE, and text TEXT. If invoked in the context of a change to a new
+book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P,
+respectively."
+  (dtk-maybe-insert-book-and-chapter book ch new-bk-p new-ch-p)
   (when verse
     (let ((verse-start (point)))
       (when dtk-verse-number-inserter
