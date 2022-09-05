@@ -669,7 +669,7 @@ specified for a specific module."
 VERSE, and text TEXT. If invoked in the context of a change to a new
 book or a new chapter, indicate this with NEW-BK-P or NEW-CH-P,
 respectively."
-  (dtk-maybe-insert-book-and-chapter book ch new-bk-p new-ch-p)
+  (dtk-maybe-insert-book-chapter book ch new-bk-p new-ch-p)
   (when verse
     (let ((verse-start (point)))
       (when dtk-verse-number-inserter
