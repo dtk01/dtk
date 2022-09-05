@@ -877,6 +877,22 @@ called with four arguments: book, chapter, verse, and verse-plists.")
   "If non-NIL, this should define a function to invoked after
 insertion of a set of verses via DTK-INSERT-VERSES.")
 
+(defun dtk-maybe-insert-book-chapter (book chapter new-bk-p new-ch-p)
+  "If the context is appropriate, insert book and/or chapter."
+  (let ((book-start (point)))
+    (when (or (not dtk-compact-view) new-bk-p)
+      (insert book #x20)
+      (set-text-properties book-start (point) (list 'book book))))
+  (when (or (not dtk-compact-view) new-ch-p)
+    (let ((chapter-start (point)))
+      (insert (int-to-string chapter)
+	      (if verse #x3a #x20))
+      (add-text-properties (if new-ch-p
+			       chapter-start
+			     book-start)
+			   (point)
+			   (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
+
 (defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
