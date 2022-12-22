@@ -1693,10 +1693,16 @@ Insert at the position AT."
       (goto-char (1- chapter-changes-at)))
     chapter-changes-at))
 
-(defun dtk-previous-verse-change ()
-  "Move to the point at which the 'verse text property assumes a different value (relative to the 'verse text property at the current point). Return the point at which the 'verse text property changed or, if the property does not change prior to the current point, return NIL."
+(defun dtk-previous-verse-change (&optional start-at)
+  "Move to the point at which the verse text property assumes a
+different value (relative to the verse text property at START-AT or
+the current point). Return the point at which the 'verse text property
+changed or, if the property does not change prior to the current
+point, return NIL."
   (interactive)
-  (let ((verse-changes-at (previous-single-property-change (1+ (point)) 'verse)))
+  (let ((verse-changes-at (previous-single-property-change
+			   (or start-at (1+ (point)))
+			   'verse)))
     (when verse-changes-at
       (goto-char (1- verse-changes-at)))
     verse-changes-at))
