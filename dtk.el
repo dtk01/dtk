@@ -1597,9 +1597,10 @@ preceded by a different chapter."
     ;; the buffer
     (if (not (dtk-backward-until-defined-chapter-not-equal current-chapter))
 	(progn
-	  (dtk-insert-chapter-at book
-				 (1- current-chapter)
-				 (point-min))
+	  (dtk-insert-v-or-c-at book
+				(1- current-chapter)
+				nil
+				(point-min))
 	  (backward-word)		; expose chapter
 	  (dtk-to-start-of-current-chapter)))))
 
@@ -1646,13 +1647,18 @@ chapter text property value and X does not return a true value."
   (dtk-previous-verse)
   (dtk-to-start-of-current-verse))
 
-(defun dtk-insert-chapter-at (bk ch at)
-  "Attempt to insert the indicated chapter at the position specified
-by AT. CH is a number."
+(defun dtk-insert-v-or-c-at (bk ch verse at)
+  "If both CH and VERSE are numbers, attempt to insert the indicated
+verse. If VERSE is NIL, attempt to insert the indicated chapter.
+Insert at the position AT."
   (goto-char at)
   ;; Expose these values to the retriever
   (setq dtk-bible-book bk)
-  (setq dtk-bible-chapter-verse (concat (int-to-string ch) ":"))
+  (setq dtk-bible-chapter-verse (concat (int-to-string ch)
+					":"
+					(if verse
+					    (int-to-string verse)
+					  "")))
   (dtk-retrieve-parse-insert (current-buffer)))
 
 (defun dtk-previous-verse ()
@@ -1716,7 +1722,7 @@ chapter."
 	(let ((book (get-text-property (point) 'book)))
 	  (goto-char (point-max))
 	  (newline)
-	  (dtk-insert-chapter-at book (1+ current-chapter) (point-max))
+	  (dtk-insert-v-or-c-at book (1+ current-chapter) nil (point-max))
 	  (backward-word)		; expose chapter
 	  (dtk-to-start-of-current-chapter)))))
 
@@ -1758,10 +1764,34 @@ NIL if unable to move forward in the described manner."
 (defun dtk-forward-verse ()
   "Move to the numeric component of the verse citation for the next verse."
   (interactive)
-  (goto-char (next-single-property-change (point) 'verse))
-  ;; it is possible that whitespace is present not associated with a verse; if that's the case move forward until the 'verse property is defined
-  (if (not (get-text-property (point) 'text))
-      (goto-char (next-single-property-change (point) 'verse))))
+  (let ((next-verse-point (next-single-property-change (point) 'verse)))
+    (if next-verse-point
+	(progn
+	  (goto-char next-verse-point)
+	  ;; It is possible that whitespace is present which is not
+	  ;; associated with a verse. In this case, move forward
+	  ;; until the 'verse property is defined.
+	  (if (not (get-text-property (point) 'text))
+	      (goto-char (next-single-property-change (point) 'verse))))
+      (progn
+	;; If NEXT-VERSE-POINT is nil,
+	;; - go to end of buffer
+	;; - move backwards until 'verse property is present
+	;; - then retrieve and insert next
+	;; verse -- or next chapter.
+	(goto-char (point-max))
+	;; assume there is some content in the buffer
+	(let ((verse-point (previous-single-property-change (point-max) 'verse)))
+	  (let ((bk (get-text-property verse-point 'book))
+		(ch (get-text-property verse-point 'chapter))
+		(verse (get-text-property verse-point 'verse)))
+	    ;; This leverages a diatheke (or SWORD?) quirk:
+	    ;; referencing a non-existent verse beyond the chapter end
+	    ;; is handled by counting verses, irrespective of chapter
+	    ;; or book (e.g., II Ti 2:27 as key yields II Ti 3:1; III
+	    ;; John 1:14 yields Jude 1:1; Malachi 4:6 yields Matthew
+	    ;; 1:1)
+	    (dtk-insert-v-or-c-at bk ch (1+ verse) (point))))))))
 
 (defun dtk-to-start-of-current-chapter ()
   "Move to the start of the current chapter."
