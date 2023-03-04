@@ -91,6 +91,8 @@ Select the module of interest (e.g., KJV, ESV, or RNKJV) with <kbd>M-x</kbd> `dt
 
 ## See also
 
+[bible-mode](https://github.com/Zacalot/bible-mode) is another effort to facilitate browsing SWORD module content using the diatheke interface.
+
 [diatheke.el](https://github.com/JasonFruit/diatheke.el) is another interface to diatheke.
 
 [sword-converter](https://github.com/alphapapa/sword-converter) converts SWORD module content to JSON and SQLite. Provides search functionality.
