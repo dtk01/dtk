@@ -1667,16 +1667,34 @@ Insert at the position AT."
   (dtk-retrieve-parse-insert (current-buffer)))
 
 (defun dtk-previous-verse ()
-  "Move to the previous verse. No assurance is offered with respect to the exact location of point within the preceding verse after invoking DTK-PREVIOUS-VERSE."
+  "Move to the previous verse. No assurance is offered with respect to
+the exact location of point within the preceding verse after invoking
+DTK-PREVIOUS-VERSE."
   (interactive)
-  ;; It is possible that point is currently at whitespace not
-  ;; associated with a verse; if so, move until the 'verse property is
-  ;; defined and treat that verse value as the current verse.
-  (dtk-back-until-verse-defined)
-  (dtk-previous-verse-change)
-  ;; As above, it's possible point is at a position where
-  ;; the 'verse property is not defined.
-  (dtk-back-until-verse-defined))
+  ;; Point may be
+  ;; 1. on/in a verse
+  ;; 2. between verses (verse not defined)
+  ;; 3. preceding verses (near start of buffer; verse not defined)
+  (let ((current-verse-value (get-text-property (point) 'verse))
+	(prior-verse-position (dtk-prior-verse-position)))
+    (cond ((not prior-verse-position)
+	   (goto-char 0)
+	   (dtk-forward-until-chapter-defined)
+	   (let ((book (get-text-property (point) 'book))
+		 (current-chapter (get-text-property (point) 'chapter)))
+	     (dtk-insert-v-or-c-at book
+				   (1- current-chapter)
+				   nil
+				   (point-min))))
+	  (current-verse-value
+	   (goto-char prior-verse-position))
+	  (t
+	   ;; It is likely that point is currently at whitespace not
+	   ;; associated with a verse ==> treat the preceding verse
+	   ;; value as the current verse value
+	   (goto-char prior-verse-position)
+	   (dtk-previous-verse)))))
+
 (defun dtk-prior-verse-position ()
   "Return first prior position where verse text property is numeric.
 Return NIL if no such position exists."
