@@ -1710,6 +1710,24 @@ point, return NIL."
       (goto-char (1- verse-changes-at)))
     verse-changes-at))
 
+(defun dtk-find-previous-verse-where (predicate start-at text-property)
+  "Beginning at position START-AT, evaluate PREDICATE on the specified
+text property, moving through the buffer until the buffer position is
+0 or PREDICATE returns a true value. Return the buffer position at which
+PREDICATE returns a true value; otherwise return NIL."
+  (let ((position start-at))
+    (cl-loop
+     for verse-changes-at = (previous-single-property-change position text-property)
+     if (not verse-changes-at)
+     do (cl-return nil)
+     if (funcall predicate (get-text-property verse-changes-at text-property))
+     do (cl-return verse-changes-at)
+     if (<= verse-changes-at 1)
+     do (cl-return nil)
+     else
+     do (setf position (1- verse-changes-at))
+     )))
+
 (defun dtk-forward-chapter ()
   "Move to the next chapter (the point at which the chapter text
 property changes to a new value distinct from the current chapter text
