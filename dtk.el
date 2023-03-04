@@ -985,6 +985,7 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 ;; sword-to-org project.
 (defconst dtk-sto--diatheke-parse-line-regexp
   (rx bol
+      ;; A <div /> element may be here. If it is of type="section", is it safe to disregard it?
       ;; A <title>...</title> element may precede other content
       (group-n 9 (zero-or-one "<title"
 			      (zero-or-more (not ?>))
@@ -992,6 +993,7 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 			      (1+ anything)
 			      "</title>"))
       (zero-or-one space)
+      ;; A LG element might be here for poetic content. Disregard as it is not of interest.
       ;; Book name
       (group-n 1 (minimal-match (1+ anything)))
       (zero-or-more space)
