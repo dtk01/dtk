@@ -973,7 +973,7 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 	   (switch-to-buffer dtk-buffer-name))))
   (when clear-buffer-p
     (dtk-clear-buffer (current-buffer)))
-  (dtk-set-module module)
+  ;(dtk-set-module module)  Q: why is/was this here?  A1: it facilitated dtk-daily setting the module -- but really it makes more sense to do this at the level of dtk-daily, not here
   (dtk-set-mode)
   (dtk-retrieve-parse-insert (current-buffer)))
 
