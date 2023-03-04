@@ -316,10 +316,13 @@ obtain book, chapter, and verse."
 		     t
 		     dtk-diatheke-output-format
 		     nil)
-       (when (dtk-check-for-text-obesity)
-	 (unless dtk-preserve-diatheke-output-p
-	   (dtk-bible-retriever--post-process)))
-       (buffer-string)))))
+       (if (dtk-check-for-text-obesity)
+	   (progn
+	     (unless dtk-preserve-diatheke-output-p
+	       (dtk-bible-retriever--post-process))
+	     (buffer-string))
+	 " "				; avoid triggering zero length warning
+	 )))))
 
 (defun dtk-bible-retriever--post-process ()
   "Post-processing directly after insertion of text supplied via
