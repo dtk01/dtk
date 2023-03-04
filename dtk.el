@@ -1675,6 +1675,17 @@ Insert at the position AT."
   ;; As above, it's possible point is at a position where
   ;; the 'verse property is not defined.
   (dtk-back-until-verse-defined))
+(defun dtk-prior-verse-position ()
+  "Return first prior position where verse text property is numeric.
+Return NIL if no such position exists."
+  (let ((start-at (point))
+	(current-verse (get-text-property (point) 'verse)))
+    (dtk-find-previous-verse-where
+     (lambda (value)		; value of text property
+       (and value
+	    (not (eql value current-verse))))
+     start-at
+     'verse)))
 
 (defun dtk-back-until-verse-defined ()
   "If the verse text property is not defined at point, back up to the first point, relative to the current point, at which the verse text property is defined."
