@@ -160,6 +160,11 @@ thing made that was made."
 	    (message "Okay")
 	    nil)))))
 
+(defun dtk-citation-at-point ()
+  (make-dtk-citation :bk (get-text-property (point) 'book)
+                     :ch (get-text-property (point) 'chapter)
+                     :vs (get-text-property (point) 'verse)))
+
 (defun dtk-diatheke (query-key module destination &optional diatheke-output-format searchp)
   "Invoke diatheke using CALL-PROCESS. Return value undefined. QUERY-KEY is a string or a list (e.g., '(\"John\" \"1:1\")). See the docstring for CALL-PROCESS for a description of DESTINATION. DIATHEKE-OUTPUT-FORMAT is either NIL or a keyword specifying the diatheke output format. Supported keyword values are :osis or :plain."
   (let ((call-process-args (list dtk-program
