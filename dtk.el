@@ -128,6 +128,14 @@ thing made that was made."
   (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
 
+;;; Citations
+(cl-defstruct dtk-citation
+  "Specify book, chapter, or verse or some combination thereof."
+  bk                                    ; a string
+  ch                                    ; a whole number
+  vs                                    ; a whole number
+  )
+
 ;;; Functions
 ;;;###autoload
 (defun dtk ()
