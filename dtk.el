@@ -93,15 +93,6 @@ thing made that was made."
   ;; numeric input, so we skip them.
   )
 
-(defvar dtk-bible-book nil
-  "DTK-BIBLE-BOOK specifies the last book value passed to the
-  retriever for a module in the \"Biblical Texts\" category.")
-
-(defvar dtk-bible-chapter-verse nil
-  "DTK-BIBLE-CHAPTER-VERSE specifies the last chapter and verse values
-  passed to the retriever for a module in the \"Biblical Texts\"
-  category.")
-
 (defvar dtk-inserter 'dtk-insert-verses
   "A function which accepts a single argument, the parsed content. The
   current buffer is used. The inserter is only invoked if dtk-parser
