@@ -192,6 +192,33 @@ thing made that was made."
 								    (t query-key))))
     (apply 'call-process call-process-args)))
 
+(defun dtk-diatheke-query-key (a &optional b)
+  "Return a string usable as a query key for diatheke (for Biblical
+book-chapter-verse citations). Two citations, A and B, can be used to
+specify a range."
+  (let ((query-key (dtk-citation-bk a)))
+    (when (dtk-citation-ch a)
+      (setq query-key
+            (cl-concatenate 'string query-key
+                            " "
+                            (number-to-string (dtk-citation-ch a)))))
+    (when (dtk-citation-vs a)
+      (setq query-key
+            (cl-concatenate 'string query-key
+                            ":"
+                            (number-to-string (dtk-citation-vs a)))))
+    (when b
+      (setq query-key
+            (cl-concatenate 'string query-key
+                            "-"
+                            (number-to-string (dtk-citation-ch b))))
+      (when (dtk-citation-vs b)
+        (setq query-key
+              (cl-concatenate 'string query-key
+                              ":"
+                              (number-to-string (dtk-citation-vs b))))))
+    query-key))
+
 (defun dtk-diatheke-string (query-key module &optional diatheke-output-format)
   "Return a string."
   (with-temp-buffer
