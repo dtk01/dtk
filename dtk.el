@@ -1727,10 +1727,14 @@ Return NIL if no such position exists."
 	     (not (get-text-property (point) 'verse)))
     (if (get-text-property (1- (point)) 'verse)
 	(goto-char (1- (point)))
-      (goto-char (1-
-		  (previous-single-property-change
-		   (point)
-		   'verse))))))
+      (let ((verse-changes-at
+             ;; This may be NIL (e.g., if @ book name at start of buffer)
+             (previous-single-property-change
+	      (point)
+	      'verse)))
+        (if verse-changes-at
+            (goto-char (1- verse-changes-at))
+          nil)))))
 
 (defun dtk-previous-chapter-change ()
   "Move to the point at which the 'chapter text property assumes a different value (relative to the 'chapter text property at the current point). Return the point at which the 'chapter text property changed or, if the property does not change prior to the current point, return NIL."
