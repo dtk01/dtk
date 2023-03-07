@@ -1714,12 +1714,9 @@ verse. If VERSE is NIL, attempt to insert the indicated chapter.
 Insert at the position AT."
   (goto-char at)
   ;; Expose these values to the retriever
-  (setq dtk-bible-book bk)
-  (setq dtk-bible-chapter-verse (concat (int-to-string ch)
-					":"
-					(if verse
-					    (int-to-string verse)
-					  "")))
+  (setf dtk-to-retrieve
+        (list (make-dtk-citation :bk bk :ch ch :vs verse)
+              nil))
   (dtk-retrieve-parse-insert (current-buffer)))
 
 (defun dtk-previous-verse ()
