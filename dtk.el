@@ -1832,6 +1832,21 @@ NIL if unable to move forward in the described manner."
 		(t (dtk-forward-until-defined-chapter-not-equal x changes-at-point))))
       nil)))
 
+(defun dtk-forward-until-verse-defined ()
+  "If the verse text property is defined at point, return a true
+value. If the verse text property is not defined at point, move
+forward until at a position where the verse text property is
+defined. Return NIL if a position does not exist forward of point
+where the verse text property changes."
+  (interactive)
+  (cond ((eobp)
+	 nil)
+	((not (get-text-property (point) 'verse))
+	 (let ((changes-at-point (next-single-property-change (point) 'verse)))
+	   (if changes-at-point
+	       (goto-char changes-at-point))))
+	(t t)))
+
 (defun dtk-forward-verse ()
   "Move to the numeric component of the verse citation for the next verse."
   (interactive)
