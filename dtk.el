@@ -356,12 +356,13 @@ obtain book, chapter, and verse."
   (with-current-buffer destination
     (insert
      (with-temp-buffer
-       (dtk-diatheke (list dtk-bible-book
-			   dtk-bible-chapter-verse)
-		     dtk-module
-		     t
-		     dtk-diatheke-output-format
-		     nil)
+       (dtk-diatheke
+        (dtk-diatheke-query-key (first dtk-to-retrieve)
+                                (second dtk-to-retrieve))
+	dtk-module
+	t
+	dtk-diatheke-output-format
+	nil)
        (if (dtk-check-for-text-obesity)
 	   (progn
 	     (unless dtk-preserve-diatheke-output-p
