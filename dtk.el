@@ -405,12 +405,14 @@ DTK-BIBLE-CHAPTER-VERSE."
                             (read-from-minibuffer "Verse: ")))
          (chapter-verse (concat final-chapter ":" final-verse)))
     ;; Expose these values to the retriever
-    (setf (first dtk-to-retrieve)
-          (make-dtk-citation :bk final-book
-                             :ch (when (> (length final-chapter) 0)
-                                   (string-to-number final-chapter))
-                             :vs (when (> (length final-verse) 0)
-                                   (string-to-number final-verse))))))
+    (setf dtk-to-retrieve
+          (list
+           (make-dtk-citation :bk final-book
+                              :ch (when (> (length final-chapter) 0)
+                                    (string-to-number final-chapter))
+                              :vs (when (> (length final-verse) 0)
+                                    (string-to-number final-verse)))
+           nil))))
 
 (defun dtk-retrieve-parse-insert (insert-into)
   "Invoke DTK-RETRIEVER, anticipating that the text of interest will
