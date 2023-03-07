@@ -317,8 +317,14 @@ obtain book, chapter, and verse."
 	    (t
 	     (switch-to-buffer dtk-buffer-name))))
     ;; Expose these values to the retriever
-    (setq dtk-bible-book final-book)
-    (setq dtk-bible-chapter-verse chapter-verse)
+    (setf dtk-to-retrieve
+          (list
+           (make-dtk-citation :bk final-book
+                              :ch (when (> (length final-chapter) 0)
+                                    (string-to-number final-chapter))
+                              :vs (when (> (length final-verse) 0)
+                                    (string-to-number final-verse)))
+           nil))
     (with-dtk-module final-module
       (dtk-retrieve-parse-insert
        (current-buffer)))
