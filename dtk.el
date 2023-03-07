@@ -363,8 +363,8 @@ obtain book, chapter, and verse."
     (insert
      (with-temp-buffer
        (dtk-diatheke
-        (dtk-diatheke-query-key (first dtk-to-retrieve)
-                                (second dtk-to-retrieve))
+        (dtk-diatheke-query-key (cl-first dtk-to-retrieve)
+                                (cl-second dtk-to-retrieve))
 	dtk-module
 	t
 	dtk-diatheke-output-format
