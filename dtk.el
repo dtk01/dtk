@@ -760,7 +760,7 @@ respectively."
     text-props))
 
 (defun dtk-insert-osis-string (string)
-  ;; Ensure some form of whitespace precedes a word. OSIS-ELT may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
+  ;; Ensure some form of whitespace precedes a word. STRING may be a word, a set of words (e.g., "And" or "the longsuffering"), or a bundle of punctuation and whitespace (e.g., "; ").
   (when (string-match "^[a-zA-Z]" string)
     (when (not (member (char-before) '(32 9 10 11 12 13 8220)))
       (insert #x20)))
