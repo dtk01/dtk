@@ -1124,6 +1124,36 @@ OSIS XML document."
   (regexp-opt '("^Unprocessed Token:"))
   "Regular expression describing lines to be ignored in diatheke OSIS output.")
 
+(defun dtk--diatheke-build-xml-elements-string (lines n)
+  "Based on raw diatheke output as a series of lines, LINES, build the
+raw text, sans citation, for a single verse, removing ignored XML
+elements."
+  (multiple-value-bind (book chapter title-raw verse first-line-raw-text)
+      (dtk--diatheke-pull-citation-and-title lines n)
+    ;; Once initial line associated with verse has been dealt
+    ;; with, modify the initial line so that it, along with
+    ;; every subsequent line can be handled in a uniform manner.
+    (when book
+      (setf (elt lines n) first-line-raw-text))
+    ;; per-line processing
+    (let ((text-raw "")
+          (current-line-n n)
+          (last-line-n (1- (length lines))))
+      (cl-do ((ignorep
+               ;; discard/ignore some classes of diatheke OSIS output
+               (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))
+               (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))))
+          (nil nil)
+        (unless ignorep
+          (setf text-raw
+                (cl-concatenate 'string text-raw (elt lines current-line-n))))
+        (when (or (>= current-line-n last-line-n)
+                  ;; check if next line corresponds to start of a new verse
+                  (string-match dtk-sto--diatheke-parse-line-regexp (elt lines (1+ current-line-n))))
+          (cl-return))
+        (cl-incf current-line-n))
+      (values text-raw title-raw book chapter verse current-line-n))))
+
 (defun dtk--diatheke-parse-osis-xml-for-verse (lines n)
   "Consume lines associated with a single verse. Return multiple values where where the first value is the index of the last line consumed in parsing a single verse and the second value is a plist associated with a single verse. Use list of strings, LINES, starting at list element N. If an indication of the beginning of a verse is not encountered at element N, return nil."
   ;; Anticipate that LINES corresponds to raw diatheke output
