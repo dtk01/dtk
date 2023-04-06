@@ -71,12 +71,12 @@ In a Windows environment, diatheke may not be in the search path for executables
 
 Some texts have dictionary references embedded in the texts. For these texts, dictionary lookups may be available. By default, <kbd>d</kbd> will, by invoking `dtk-dict`, display the related dictionary entry, if that entry is available.
 
-### Searching within a text
+## Searching within a text
 
 Search the selected text with <kbd>M-x</kbd> `dtk-search`.
 
 
-### Selecting a module
+## Selecting a module
 
 Modules fall into a number of categories. Select the category of module which is under consideration with <kbd>M-x</kbd> `dtk-select-module-category`. By default, this functionality is bound to <kbd>M</kbd>.
 
