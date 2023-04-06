@@ -1155,52 +1155,23 @@ elements."
       (values text-raw title-raw book chapter verse current-line-n))))
 
 (defun dtk--diatheke-parse-osis-xml-for-verse (lines n)
-  "Consume lines associated with a single verse. Return multiple values where where the first value is the index of the last line consumed in parsing a single verse and the second value is a plist associated with a single verse. Use list of strings, LINES, starting at list element N. If an indication of the beginning of a verse is not encountered at element N, return nil."
-  ;; Anticipate that LINES corresponds to raw diatheke output
-  (let ((line (elt lines n))
-	(current-line-n n)
-	(last-line-n (1- (length lines))))
-    (when (s-present? line)
-      (when (string-match dtk-sto--diatheke-parse-line-regexp line)
-	(let ((book (match-string 1 line))
-	      (chapter (string-to-number (match-string 2 line)))
-	      (title (match-string 9 line))
-	      (verse (string-to-number (match-string 3 line)))
-	      ;; Ensure text is present, which may not be the case if
-	      ;; a verse starts with a newline.  See
-	      ;; <https://github.com/alphapapa/sword-to-org/issues/2>
-	      (first-line-raw-text (when (s-present? (match-string 4 line))
-				     (s-trim (match-string 4 line))))
-	      (text-raw ""))
-	  ;; Once initial line associated with verse has been dealt
-	  ;; with, modify the initial line so that it, along with
-	  ;; every subsequent line can be handled in the same manner.
-	  (when book
-	    (setf (elt lines n) first-line-raw-text))
-	  ;; per-line processing
-	  (cl-do ((ignorep
-		   ;; discard/ignore some classes of diatheke OSIS output
-		   (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))
-		   (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))))
-	      (nil nil)
-	    (unless ignorep
-	      (setf text-raw
-		    (cl-concatenate 'string text-raw (elt lines current-line-n))))
-	    (when (or (>= current-line-n last-line-n)
-		      ;; check if next line corresponds to start of a new verse
-		      (string-match dtk-sto--diatheke-parse-line-regexp (elt lines (1+ current-line-n))))
-	      (cl-return))
-	    (cl-incf current-line-n))
-	  ;; Add root element and parse text as a single piece of XML
-	  (let ((text-structured (with-temp-buffer
-				   (insert "<r>" text-raw "</r>")
-				   (xml-parse-region)))
-		(title-structured (dtk-title-xml-to-plist title)))
-            (cl-values current-line-n
-		       (list
-			:title title-structured
-			:book book :chapter chapter :verse verse
-			:text (cl-subseq (car text-structured) 2)))))))))
+  "Consume lines associated with a single verse. Return multiple
+values where where the first value is the index of the last line
+consumed in parsing a single verse and the second value is a plist
+associated with a single verse. Use list of strings, LINES, starting
+at list element N. If an indication of the beginning of a verse is not
+encountered at element N, return NIL."
+  (multiple-value-bind (text-raw title-raw book chapter verse current-line-n)
+      (dtk--diatheke-build-xml-elements-string lines n)
+    ;; Add root element and parse text as a single piece of XML
+    (let ((text-structured (with-temp-buffer
+                             (insert "<r>" text-raw "</r>")
+                             (xml-parse-region)))
+          (title-structured (dtk-title-xml-to-plist title-raw)))
+      (cl-values current-line-n
+                 (list :title title-structured
+                       :book book :chapter chapter :verse verse
+                       :text (cl-subseq (car text-structured) 2))))))
 
 (defun dtk--diatheke-pull-citation-and-title (lines n)
   "Anticipate that LINES corresponds to raw diatheke output. Match on
