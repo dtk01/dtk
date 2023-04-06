@@ -1126,13 +1126,7 @@ OSIS XML document."
 
 (defun dtk--diatheke-parse-osis-xml-for-verse (lines n)
   "Consume lines associated with a single verse. Return multiple values where where the first value is the index of the last line consumed in parsing a single verse and the second value is a plist associated with a single verse. Use list of strings, LINES, starting at list element N. If an indication of the beginning of a verse is not encountered at element N, return nil."
-  ;; Anticipate LINES to correspond to what diatheke coughs up. For a single verse of a "Bible text", this is typically one or more lines of the form
-  ;; II Peter 3:15: <w lemma=\"strong:G3588 lemma.TR:την\" morph=\"robinson:T-ASF\" src=\"2\" wn=\"001\"/><w lemma=\"strong:G2532 lemma.TR:και\" morph=\"robinson:CONJ\" src=\"1\" wn=\"002\">And</w> <w lemma=\"strong:G2233 lemma.TR:ηγεισθε\" morph=\"robinson:V-PNM-2P\" src=\"8\" wn=\"003\">account</w> ...
-  ;;
-  ;; Note that diatheke may emit, for a single verse, a set of lines of the form
-  ;; II Peter 3:15: Unprocessed Token: <br /> in key II Peter 3:15
-  ;; Unprocessed Token: <br /> in key II Peter 3:15
-  ;; ...
+  ;; Anticipate that LINES corresponds to raw diatheke output
   (let ((line (elt lines n))
 	(current-line-n n)
 	(last-line-n (1- (length lines))))
@@ -1177,6 +1171,24 @@ OSIS XML document."
 			:title title-structured
 			:book book :chapter chapter :verse verse
 			:text (cl-subseq (car text-structured) 2)))))))))
+
+(defun dtk--diatheke-pull-citation-and-title (lines n)
+  "Anticipate that LINES corresponds to raw diatheke output. Match on
+citation and title content. Return verse content sans title content
+and citation content."
+  (let ((line (elt lines n)))
+    (when (s-present? line)
+      (when (string-match dtk-sto--diatheke-parse-line-regexp line)
+        (let ((book (match-string 1 line))
+              (chapter (string-to-number (match-string 2 line)))
+              (title-raw (match-string 9 line))
+              (verse (string-to-number (match-string 3 line)))
+              ;; Ensure text is present, which may not be the case if
+              ;; a verse starts with a newline.  See
+              ;; <https://github.com/alphapapa/sword-to-org/issues/2>
+              (first-line-raw-text (when (s-present? (match-string 4 line))
+                                     (s-trim (match-string 4 line)))))
+          (values book chapter title-raw verse first-line-raw-text))))))
 
 ;;
 ;; handling title element
