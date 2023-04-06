@@ -1215,7 +1215,7 @@ node ELEMENT-NODE. If DESCENDP is true, descend into child element nodes."
 	    ((and descendp
 		  ;; (xml-element-node-p child)
 		  (consp child))
-	     (%insert-xml-elt-char-data child descendp descendp-count))))))
+	     (dtk-%insert-xml-elt-char-data child descendp descendp-count))))))
 
 ;;
 ;; dictionary: handle dictionary entries and references
