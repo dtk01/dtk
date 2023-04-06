@@ -23,7 +23,7 @@ These may be set interactively by calling `dtk-select-module-category` and
 `dtk-select-module`, respectively.
 
 <kbd>M-x</kbd> `dtk` will create a dedicated buffer `*dtk*` and prompt for
-completion of book, chapter and verse. Corresponding text(s) will be inserted to
+completion of book, chapter and verse. The corresponding text will be inserted into
 `*dtk*` upon completion. 
 
 The `*dtk*` buffer enables `dtk-mode` and provides the following keybindings:
