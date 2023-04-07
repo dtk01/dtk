@@ -1139,6 +1139,8 @@ elements."
     (let ((text-raw "")
           (current-line-n n)
           (last-line-n (1- (length lines))))
+      (unless first-line-raw-text
+        (setf (elt lines current-line-n) "[verse omitted]"))
       (cl-do ((ignorep
                ;; discard/ignore some classes of diatheke OSIS output
                (string-match dtk-parse-osis-ignore-regexp (elt lines current-line-n))
