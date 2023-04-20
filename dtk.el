@@ -1947,6 +1947,10 @@ where the verse text property changes."
 	  (t
 	   (beginning-of-buffer)))))
 
+(defun dtk-verse-changes-at ()
+  "Return point at which verse text property changes."
+  (next-single-property-change (point) 'verse))
+
 ;;;
 ;;; miscellany
 ;;;
