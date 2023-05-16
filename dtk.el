@@ -395,15 +395,17 @@ obtain book, chapter, and verse. Set DTK-TO-RETRIEVE."
                             (read-from-minibuffer "Verse: ")))
          (chapter-verse (concat final-chapter ":" final-verse)))
     ;; Support verse ranges (e.g., FINAL-VERSE values like "1-2")
-    (let ((maybe-verse-range (split-string final-verse "-")))
+    (let ((maybe-verse-range (if (> (length final-verse) 0)
+                                 (split-string final-verse "-")
+                               nil)))
       ;; Expose these values to the retriever
-      (setf (first dtk-to-retrieve)
+      (setf (elt dtk-to-retrieve 0)
             (make-dtk-citation :bk final-book
                                :ch (when (> (length final-chapter) 0)
                                      (string-to-number final-chapter))
-                               :vs (when (> (length maybe-verse-range) 0)
+                               :vs (when maybe-verse-range
                                      (string-to-number (elt maybe-verse-range 0)))))
-      (setf (second dtk-to-retrieve)
+      (setf (elt dtk-to-retrieve 1)
             (if (elt maybe-verse-range 1)
                 (make-dtk-citation :bk final-book
                                    :ch (when (> (length final-chapter) 0)
