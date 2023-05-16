@@ -394,15 +394,22 @@ obtain book, chapter, and verse. Set DTK-TO-RETRIEVE."
          (final-verse   (or (when verse (number-to-string verse))
                             (read-from-minibuffer "Verse: ")))
          (chapter-verse (concat final-chapter ":" final-verse)))
-    ;; Expose these values to the retriever
-    (setf dtk-to-retrieve
-          (list
-           (make-dtk-citation :bk final-book
-                              :ch (when (> (length final-chapter) 0)
-                                    (string-to-number final-chapter))
-                              :vs (when (> (length final-verse) 0)
-                                    (string-to-number final-verse)))
-           nil))))
+    ;; Support verse ranges (e.g., FINAL-VERSE values like "1-2")
+    (let ((maybe-verse-range (split-string final-verse "-")))
+      ;; Expose these values to the retriever
+      (setf (first dtk-to-retrieve)
+            (make-dtk-citation :bk final-book
+                               :ch (when (> (length final-chapter) 0)
+                                     (string-to-number final-chapter))
+                               :vs (when (> (length maybe-verse-range) 0)
+                                     (string-to-number (elt maybe-verse-range 0)))))
+      (setf (second dtk-to-retrieve)
+            (if (elt maybe-verse-range 1)
+                (make-dtk-citation :bk final-book
+                                   :ch (when (> (length final-chapter) 0)
+                                         (string-to-number final-chapter))
+                                   :vs (string-to-number (elt maybe-verse-range 1)))
+              nil)))))
 
 (defun dtk-retrieve-parse-insert (insert-into)
   "Invoke DTK-RETRIEVER, anticipating that the text of interest will
