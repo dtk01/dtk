@@ -1893,7 +1893,7 @@ where the verse text property changes."
   (cond ((eobp)
 	 nil)
 	((not (get-text-property (point) 'verse))
-	 (let ((changes-at-point (next-single-property-change (point) 'verse)))
+	 (let ((changes-at-point (dtk-verse-changes-at)))
 	   (if changes-at-point
 	       (goto-char changes-at-point))))
 	(t t)))
@@ -1901,7 +1901,7 @@ where the verse text property changes."
 (defun dtk-forward-verse ()
   "Move to the numeric component of the verse citation for the next verse."
   (interactive)
-  (let ((next-verse-point (next-single-property-change (point) 'verse)))
+  (let ((next-verse-point (dtk-verse-changes-at)))
     (if next-verse-point
 	(progn
 	  (goto-char next-verse-point)
@@ -1909,7 +1909,7 @@ where the verse text property changes."
 	  ;; associated with a verse. In this case, move forward
 	  ;; until the 'verse property is defined.
 	  (if (not (get-text-property (point) 'text))
-	      (goto-char (next-single-property-change (point) 'verse))))
+	      (goto-char (dtk-verse-changes-at))))
       (progn
 	;; If NEXT-VERSE-POINT is nil,
 	;; - go to end of buffer
