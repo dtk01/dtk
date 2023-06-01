@@ -1,7 +1,5 @@
 ;;; dtk.el --- access SWORD content via diatheke
 ;;
-;; Copyright (C) David Thompson
-;;
 ;; Author: David Thompson
 ;; Keywords: hypermedia
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6.1") (dash "2.12.0") (seq "1.9") (s "1.9"))
