@@ -25,6 +25,7 @@
 (require 's)
 (require 'seq)
 (require 'subr-x)
+(require 'rx)
 
 ;;;; Customization
 ;; User configurable variables:
@@ -124,6 +125,32 @@ thing made that was made."
 (defconst dtk-books-regexp
   (regexp-opt dtk-books)
   "Regular expression aiming to match a member of DTK-BOOKS.")
+;; Regexps to match citation.
+;;
+;; This works for single verse as well as verse range expression, i.e,
+;; Genesis 10:10 and Matthew 2:1-10 will both work.
+;;
+;; Three groups are Book, Chapter, and Verse/Range (Optional) respectively. Note
+;; that user Verse/Range is optional, as sometimes the whole chapter is needed,
+;; e.g: Luke 3.
+;;
+;; `rx-to-string' usage is referred from:
+;; https://emacs.stackexchange.com/questions/2288/how-do-i-create-a-dynamic-regexp-with-rx
+(defconst dtk-citation-regexp
+  (rx-to-string
+   `(sequence
+     ;; Group 1: Book
+     (group (sequence symbol-start (or ,@dtk-books) symbol-end))
+     space
+     ;; Group 2: Chapter
+     (group (one-or-more digit))
+     ;; Group 3: Verse or Verse range
+     ;; Note this is optional, meaning that the whole chapter is needed.
+     (optional
+      ":"
+      (group (one-or-more digit) (opt "-" (one-or-more digit)))))
+   )
+  "Regular expression to match a citation.")
 
 ;;; Citations
 (cl-defstruct dtk-citation
@@ -943,6 +970,54 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 			     book-start)
 			   (point)
 			   (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
+
+(defun dtk-parse-citation-at-point ()
+  "Assume point is at a citation, return a list where the first
+member specifies the book, the second member specifies the
+chapter, and the third member specifies the verse by number.
+
+Note that if the citation crosses lines, it will not work. "
+  (interactive)
+  ;; Method:
+  ;; Search backward for space/separator, then try to parse forward for a citation.
+  ;;
+  ;; Consider a long name: "Revelation of John 20:10". If the point is somewhere
+  ;; at the end, it only takes 4 times to go to the beginning to start a proper
+  ;; search. So we go back at most 4 times, otherwise, nil is returned.
+  ;;
+  ;; To limit search scope, the search bound is set. Upper bound is the smaller
+  ;; of either 1) closeset close-parenthesis/separator or 2) current point + 15
+  ;; (using "Revelation of John 20:10", the possible longest citation, as an
+  ;; approximation). Lower bound is vice versa.
+  (save-excursion
+    (save-excursion
+      (setq forward-bound (min (re-search-forward (rx-to-string `(or (syntax close-parenthesis)
+                                                                     ";"
+                                                                     eol)))
+                               (+ (point) 15))))
+    ;; The search backward bound is the max position of a previous citation, which
+    ;; usually is signified by a closing parenthesis/separator
+    (save-excursion
+      (setq backward-bound (max (re-search-backward (rx-to-string `(or (syntax close-parenthesis)
+                                                                       ";"
+                                                                       bol)))
+                                (- (point) 15))))
+    ;; 2) In between the two bounds, search forward and try to parse citation for
+    ;; at most 4 times.
+    (setq count 0)
+    (while (and (>= (re-search-backward (rx (or space bol))) backward-bound)
+                (< count 4))
+      (when (re-search-forward dtk-citation-regexp forward-bound t)
+        (setq book (match-string 1)
+              chapter (match-string 2)
+              verse-range (match-string 3))
+        (message (concat "Detect citation: "
+                         book " " chapter (if verse-range (concat ":" verse-range) "")))
+        )
+      (setq count (1+ count)))
+    (list book chapter verse-range)
+    )
+  )
 
 (defun dtk-parse-citation-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
