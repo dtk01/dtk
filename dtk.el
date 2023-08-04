@@ -1000,27 +1000,27 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 
 (defun dtk-to-start-of-full-citation ()
   "If point is within a full citation, move the point to the start of the full citation."
-  (interactive)
   (let ((full-citation-component (dtk-at-verse-full-citation?)))
     (when full-citation-component
       ;; place point at space before chapter number
       (cond ((eq full-citation-component :space-or-book)
-	     (search-forward ":")
-	     (search-backward " "))
-	    ((member full-citation-component
-		     '(:chapter :colon :verse))
-	     (search-backward " ")))
+             (search-forward ":")
+             (search-backward " "))
+            ((member full-citation-component
+                     '(:chapter :colon :verse))
+             (search-backward " ")))
       ;; move to start of chapter name
-      (search-backward-regexp dtk-books-regexp)
-      ;; kludge to anticipate any order in dtk-books-regexp
-      ;; - if citation is at start of buffer, searching for non-word character will fail
-      (if (condition-case nil
-	      (progn (search-backward-regexp "\\W")
-		     t)
-	    (error nil
-		   (progn (beginning-of-line-text)
-			  nil)))
-	  (forward-char)))))
+      (let ((match-start (search-backward-regexp dtk-books-regexp)))
+        ;; kludge to anticipate any order in dtk-books-regexp
+        ;; - if citation is at start of buffer, searching for non-word character will fail
+        (if (condition-case nil
+                (progn (search-backward-regexp "\\W")
+                       t)
+              (error nil
+                     (progn (beginning-of-line-text)
+                            nil)))
+            (forward-char))
+        match-start))))
 
 (defun dtk-view-text (clear-buffer-p dtk-buffer-p module)
   (interactive)
