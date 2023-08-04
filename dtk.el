@@ -945,7 +945,7 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 (defun dtk-parse-citation-at-point ()
   (if (dtk-to-start-of-full-citation)
       (dtk-parse-citation-starting-at-point)
-    nil))
+    '(nil nil nil)))
 
 (defun dtk-parse-citation-starting-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
