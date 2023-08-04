@@ -943,6 +943,11 @@ insertion of a set of verses via DTK-INSERT-VERSES.")
 			   (list 'book book 'chapter chapter 'font-lock-face 'dtk-chapter-number)))))
 
 (defun dtk-parse-citation-at-point ()
+  (if (dtk-to-start-of-full-citation)
+      (dtk-parse-citation-starting-at-point)
+    nil))
+
+(defun dtk-parse-citation-starting-at-point ()
   "Assume point is at the start of a full verse citation. Return a list where the first member specifies the book, the second member specifies the chapter, and the third member specifies the verse by number."
   (let ((book-start-position (point))
 	(book-end-position nil)
