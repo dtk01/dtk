@@ -226,13 +226,14 @@ specify a range."
   (s-lines (dtk-diatheke-string key module)))
 
 (defun dtk-follow ()
-  "Look for a full citation under point. If point is indeed at a full citation, insert the corresponding verse into dtk buffer directly after citation. If point is not at a full citation, do nothing."
+  "Look for a full citation under point. If point is indeed at a full
+citation, navigate to the corresponding text. If point is not at a
+full citation, do nothing."
   (interactive)
-  (dtk-to-start-of-full-citation)
-  (let ((book-chapter-verse (dtk-parse-citation-at-point)))
-    (dtk-go-to (elt book-chapter-verse 0)
-	       (elt book-chapter-verse 1)
-	       (elt book-chapter-verse 2))))
+  (cl-destructuring-bind (bk ch vs)
+      (dtk-parse-citation-at-point)
+    (when (and bk ch)
+      (dtk-go-to bk ch vs))))
 
 (defun dtk-go-to (&rest retrieve-setup-args
 		  ;&optional book chapter verse
