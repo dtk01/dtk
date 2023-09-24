@@ -1141,7 +1141,7 @@ OSIS XML document."
   "Based on raw diatheke output as a series of lines, LINES, build the
 raw text, sans citation, for a single verse, removing ignored XML
 elements."
-  (multiple-value-bind (book chapter title-raw verse first-line-raw-text)
+  (cl-multiple-value-bind (book chapter title-raw verse first-line-raw-text)
       (dtk--diatheke-pull-citation-and-title lines n)
     ;; Once initial line associated with verse has been dealt
     ;; with, modify the initial line so that it, along with
@@ -1167,7 +1167,7 @@ elements."
                   (string-match dtk-sto--diatheke-parse-line-regexp (elt lines (1+ current-line-n))))
           (cl-return))
         (cl-incf current-line-n))
-      (values text-raw title-raw book chapter verse current-line-n))))
+      (cl-values text-raw title-raw book chapter verse current-line-n))))
 
 (defun dtk--diatheke-parse-osis-xml-for-verse (lines n)
   "Consume lines associated with a single verse. Return multiple
@@ -1176,7 +1176,7 @@ consumed in parsing a single verse and the second value is a plist
 associated with a single verse. Use list of strings, LINES, starting
 at list element N. If an indication of the beginning of a verse is not
 encountered at element N, return NIL."
-  (multiple-value-bind (text-raw title-raw book chapter verse current-line-n)
+  (cl-multiple-value-bind (text-raw title-raw book chapter verse current-line-n)
       (dtk--diatheke-build-xml-elements-string lines n)
     ;; Add root element and parse text as a single piece of XML
     (let ((text-structured (with-temp-buffer
@@ -1204,7 +1204,7 @@ and citation content."
               ;; <https://github.com/alphapapa/sword-to-org/issues/2>
               (first-line-raw-text (when (s-present? (match-string 4 line))
                                      (s-trim (match-string 4 line)))))
-          (values book chapter title-raw verse first-line-raw-text))))))
+          (cl-values book chapter title-raw verse first-line-raw-text))))))
 
 ;;
 ;; handling title element
