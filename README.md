@@ -1,5 +1,7 @@
 # dtk.el
 
+<2024-02-11> Archived & moved to codeberg.org. https://codeberg.org/thomp/dtk
+
 *Read Biblical texts in Emacs*
 
 ![image](dtk.gif)
